@@ -277,6 +277,7 @@ static void loop_stack(YaepTreeNode **result,
         }
         int pos_j = --state->dot_j;
         rule = state->rule;
+        assert(rule);
         YaepParseTreeBuildState *parent_anode_state = state->parent_anode_state;
         YaepTreeNode *parent_anode = parent_anode_state->anode;
         int parent_rhs_offset = state->parent_rhs_offset;
