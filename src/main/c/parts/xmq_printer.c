@@ -1727,15 +1727,19 @@ void element_strlen_name_prefix(xmlNode *element, const char **name, const char 
 
 struct OffsetCounter {
     int offset;
+    const char *attribute_name;
+    const char *ns;
 };
 typedef struct OffsetCounter OffsetCounter;
 
 void annotate_node(OffsetCounter *counter, xmlNode *node);
 
-void annotate_offsets(xmlDoc *doc)
+void annotate_offsets(xmlDoc *doc, const char *attribute_name, const char *ns)
 {
     OffsetCounter c;
     c.offset = 0;
+    c.attribute_name = attribute_name;
+    c.ns = ns;
     annotate_node(&c, xmlDocGetRootElement(doc));
 }
 
@@ -1743,7 +1747,7 @@ void annotate_node(OffsetCounter *counter, xmlNode *node)
 {
     char buf[64];
     snprintf(buf, 64, "%d", counter->offset);
-    xmlSetProp(node, (xmlChar*)"o", (xmlChar*)buf);
+    xmlSetProp(node, (xmlChar*)counter->attribute_name, (xmlChar*)buf);
     if (node->type == XML_ELEMENT_NODE)
     {
         xmlNode *i = xml_first_child(node);

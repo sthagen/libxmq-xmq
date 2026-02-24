@@ -3077,9 +3077,9 @@ void xmqPrint(XMQDoc *doq, XMQOutputSettings *output_settings)
     }
 }
 
-void xmqAnnotateOffsets(XMQDoc *doq)
+void xmqAnnotateOffsets(XMQDoc *doq, const char *attribute_name, const char *ns)
 {
-    annotate_offsets(doq->docptr_.xml);
+    annotate_offsets(doq->docptr_.xml, attribute_name, ns);
 }
 
 // Use an internal bit for signaling comment trimming.
