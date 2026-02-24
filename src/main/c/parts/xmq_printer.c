@@ -1725,21 +1725,21 @@ void element_strlen_name_prefix(xmlNode *element, const char **name, const char 
     assert(*name != NULL);
 }
 
-struct Counter {
+struct OffsetCounter {
     int offset;
 };
-typedef struct Counter Counter;
+typedef struct OffsetCounter OffsetCounter;
 
-void annotate_node(Counter *counter, xmlNode *node);
+void annotate_node(OffsetCounter *counter, xmlNode *node);
 
 void annotate_offsets(xmlDoc *doc)
 {
-    Counter c;
+    OffsetCounter c;
     c.offset = 0;
     annotate_node(&c, xmlDocGetRootElement(doc));
 }
 
-void annotate_node(Counter *counter, xmlNode *node)
+void annotate_node(OffsetCounter *counter, xmlNode *node)
 {
     char buf[64];
     snprintf(buf, 64, "%d", counter->offset);
