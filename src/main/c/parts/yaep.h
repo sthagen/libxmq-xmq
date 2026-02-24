@@ -40,6 +40,7 @@
 #ifndef BUILDING_DIST_XMQ
 #include "always.h"
 #include "membuffer.h"
+#include "xmq.h"
 #endif
 
 struct YaepGrammar;
@@ -111,6 +112,8 @@ struct YaepParseRun
     void (*parse_free)(void *mem);
     // The resulting DOM tree is stored here.
     YaepTreeNode *root;
+    // A parse failure is stored here.
+    XMQDoc *failure;
     // Set to true if the parse was ambigious.
     bool ambiguous_p;
     // Set to true if the parse faild.

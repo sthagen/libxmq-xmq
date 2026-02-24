@@ -3,7 +3,14 @@ book = !"chapter", [L]+.
 INPUT
 chapterchopper
 OUTPUT
-ixml:1:1: syntax error
-chapterchopper
-^
+ixml(ixml:state = failed
+     xmlns:ixml = http://invisiblexml.org/NS)
+{
+    info   = 'ixml:1:1: syntax error
+              chapterchopper
+              ^'
+    line   = 1
+    column = 1
+    pos    = 1
+}
 END

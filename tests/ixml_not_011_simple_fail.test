@@ -4,7 +4,14 @@ vp = 'a', ![L], ~[].
 INPUT
 ab
 OUTPUT
-ixml:1:2: syntax error
-ab
- ^
+ixml(ixml:state = failed
+     xmlns:ixml = http://invisiblexml.org/NS)
+{
+    info   = 'ixml:1:2: syntax error
+              ab
+               ^'
+    line   = 1
+    column = 2
+    pos    = 2
+}
 END

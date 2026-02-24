@@ -319,6 +319,7 @@ void append_text_children(MemBuffer *buf, xmlNode *n);
 void append_text_node(MemBuffer *buf, xmlNode *node);
 void browse(XMQCliCommand *c);
 bool check_file_exists(const char *file);
+bool check_for_ixml_fail(xmlDocPtr doc);
 bool cmd_add(XMQCliCommand *command);
 bool cmd_add_root(XMQCliCommand *command);
 bool cmd_delete(XMQCliCommand *command);
@@ -2170,6 +2171,19 @@ bool cmd_to(XMQCliCommand *command)
     return true;
 }
 
+bool check_for_ixml_fail(xmlDocPtr doc)
+{
+    if (doc == NULL) return true;
+    char *state  = (char*)xmlGetNsProp(xmlDocGetRootElement(doc), (xmlChar*)"state", (xmlChar*)"http://invisiblexml.org/NS");
+    if (state != NULL && !strcmp(state,"failed"))
+    {
+        xmlFree((xmlChar*)state);
+        return false;
+    }
+    return true;
+}
+
+
 bool cmd_output(XMQCliCommand *command)
 {
     if (command->cmd == XMQ_CLI_CMD_STATISTICS ||
@@ -2188,6 +2202,7 @@ bool cmd_output(XMQCliCommand *command)
         verbose_("xmq=", "cmd-print output");
         console_write(command->env->out_start + command->env->out_skip, command->env->out_stop);
         free(command->env->out_start);
+        if (command->env->doc != NULL) return check_for_ixml_fail(command->env->doc->docptr_.xml);
         return true;
     }
     if (command->cmd == XMQ_CLI_CMD_PAGER)

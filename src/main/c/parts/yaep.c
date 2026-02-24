@@ -1132,6 +1132,10 @@ YaepParseRun *yaepNewParseRun(YaepGrammar *g)
 void yaepFreeParseRun(YaepParseRun *pr)
 {
     YaepParseState *ps = (YaepParseState*)pr;
+    if (ps->run.failure)
+    {
+        xmqFreeDoc(ps->run.failure);
+    }
     assert(CHECK_PARSE_STATE_MAGIC(ps));
     free(ps);
 }
