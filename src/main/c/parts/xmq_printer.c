@@ -1725,4 +1725,39 @@ void element_strlen_name_prefix(xmlNode *element, const char **name, const char 
     assert(*name != NULL);
 }
 
+struct Counter {
+    int offset;
+};
+typedef struct Counter Counter;
+
+void annotate_node(Counter *counter, xmlNode *node);
+
+void annotate_offsets(xmlDoc *doc)
+{
+    Counter c;
+    c.offset = 0;
+    annotate_node(&c, xmlDocGetRootElement(doc));
+}
+
+void annotate_node(Counter *counter, xmlNode *node)
+{
+    char buf[64];
+    snprintf(buf, 64, "%d", counter->offset);
+    xmlSetProp(node, (xmlChar*)"o", (xmlChar*)buf);
+    if (node->type == XML_ELEMENT_NODE)
+    {
+        xmlNode *i = xml_first_child(node);
+        while (i)
+        {
+            xmlNode *next = xml_next_sibling(i);
+            annotate_node(counter, i);
+            i = next;
+        }
+    }
+    else if (node->type == XML_TEXT_NODE)
+    {
+        counter->offset += strlen((const char*)node->content);
+    }
+}
+
 #endif // XMQ_PRINTER_MODULE

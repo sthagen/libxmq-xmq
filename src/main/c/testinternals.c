@@ -68,6 +68,7 @@ void test_quote(int indent, bool compact, char *in, char *expected);
     X(test_escaping) \
     X(test_yaep) \
     X(test_yaep_reuse_grammar) \
+    X(test_annotate_offsets) \
 
 #define X(name) void name();
     TESTS
@@ -719,14 +720,41 @@ void test_yaep_reuse_grammar()
     xmqFreeDoc(grammar);
 }
 
+void test_annotate_offsets()
+{
+    XMQDoc *doc = xmqNewDoc();
+    bool ok = xmqParseBufferWithType(doc, "<root>ABC<a>xyz</a>DEFG<b>112233</b></root>", NULL, NULL, XMQ_CONTENT_XML, 0);
+    if (!ok)
+    {
+        printf("Could not parse xml!\n");
+        all_ok_ = false;
+        return;
+    }
+
+    xmqAnnotateOffsets(doc);
+
+    XMQOutputSettings *os = xmqNewOutputSettings();
+    xmqSetCompact(os, true);
+    char *start;
+    char *stop;
+    xmqSetupPrintMemory(os, &start, &stop);
+    xmqPrint(doc, os);
+    xmqFreeOutputSettings(os);
+    if (strcmp(start, "root(o=0){'ABC'a(o=3)=xyz'DEFG'b(o=10)=112233}\n"))
+    {
+        all_ok_ = false;
+        printf("Annotate failed: >%s<\n", start);
+    }
+    free(start);
+}
 
 int main(int argc, char **argv)
 {
-    return 0;
-#define X(name) name();
+    test_annotate_offsets();
+/*#define X(name) name();
     TESTS
 #undef X
-
+*/
     if (all_ok_) printf("OK: testinternals\n");
     else printf("ERROR: testinternals\n");
     return all_ok_ ? 0 : 1;

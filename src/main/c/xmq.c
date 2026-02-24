@@ -3077,6 +3077,11 @@ void xmqPrint(XMQDoc *doq, XMQOutputSettings *output_settings)
     }
 }
 
+void xmqAnnotateOffsets(XMQDoc *doq)
+{
+    annotate_offsets(doq->docptr_.xml);
+}
+
 // Use an internal bit for signaling comment trimming.
 #define TRIM_COMMENT 65536
 // Use an internal bit for signaling treating tabs as part of incidental indentation.
