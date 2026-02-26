@@ -18,7 +18,7 @@ html {
     }
     body(onload = 'checkBackgroundSetting();')
     {
-        h1 = 'XMQ - a configuration language, data-storage language, logging language compatible with  xml/html and json.'
+        h1 = 'XMQ - a configuration language, data-storage language, logging language compatible with  xml/html and json. Can also parse any text using IXML.'
         i  = ( 'by Fredrik Öhrström (last updated '
                &DATE;
                ') oehrstroem@gmail.com' )
@@ -44,6 +44,10 @@ html {
             button(type    = button
                    title   = 'Max 200KB, logs cleared after 30 days.'
                    onclick = '''document.getElementById('uploadFile').click()''') = 'Upload your own XML/HTML/JSON and render as XMQ'
+            ' '
+            button(type    = button
+                   title   = 'Max 200KB, logs cleared after 30 days.'
+                   onclick = '''toggleIXML();''') = 'Use IXML'
         }
         div {
             a(href = https://github.com/libxmq/xmq/releases/latest) = '[Download Executables]'
@@ -74,6 +78,54 @@ html {
         &WEBCONFIG_XMQ;
         ' '
         pre(class = 'xmq xmq_light w40') = &WEBCONFIG_JSON;
+        br
+        div(id = ixmldiv) {
+            p
+            'You can test the IXML parsing right here! Enter the grammar to the left and the input to be parsed t the right.'
+            form(id      = useixml
+                 method  = post
+                 enctype = multipart/form-data
+                 action  = useixml?light)
+            {
+               input(id = how
+                     type = hidden
+                     name = how
+                     value = to-xmq)
+               textarea(name = grammar
+                        class = 'ixml xmq xmq_light w40'
+                        style = 'width: 40%') = "S = S, '+', M | M.
+                                                 M = M, '*', T | T.
+                                                 T = [N]+."
+               ' '
+               textarea(name = content
+                        class = 'ixml xmq xmq_light w40'
+                        style = 'width: 40%') = "1+2*3"
+            }
+            button(type    = button
+                   title   = 'Parse text using IXML grammar'
+                   onClick =  "goParse('to-xmq');") = 'Parse to XMQ'
+                  ' '
+            button(type    = button
+                   title   = 'Parse text using IXML grammar'
+                  onClick = "goParse('to-xml');") = 'Parse to XML'
+                  ' '
+            button(type    = button
+                   title   = 'Parse text using IXML grammar'
+                  onClick = "goParse('to-json');") = 'Parse to JSON'
+                  ' '
+            button(type    = button
+                   title   = 'Parse text using IXML grammar'
+                  onClick = "goParse('view-parse');") = 'View parse'
+                  ' '
+            button(type    = button
+                   title   = 'Parse text using IXML grammar'
+                  onClick = "goParse('debug-parse');") = 'Debug parse'
+                  ' '
+            button(type    = button
+                   title   = 'Parse text using IXML grammar'
+                  onClick = "goParse('trace-parse');") = 'Trace parse'
+            p
+        }
         div {
             'What does it look like? Click on the examples: '
             br

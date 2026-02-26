@@ -72,3 +72,24 @@ function goXML()
     s = s.replace('_xmq.html', '_xml.html');
     window.location = s;
 }
+
+function toggleIXML()
+{
+    const d = document.getElementById("ixmldiv");
+
+    if (d.style.display === "block")
+    {
+        d.style.display = "none";
+    }
+    else
+    {
+        d.style.display = "block";
+  }
+}
+
+function goParse(how)
+{
+    const form = document.getElementById('useixml');
+    document.getElementById("how").value = how;
+    form.submit();
+}
