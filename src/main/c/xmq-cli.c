@@ -4035,7 +4035,7 @@ void prepare_xsl_command(XMQCliCommand *command, const char *arg)
     assert(file);
     if (dot_found(file))
     {
-        printf("xmq: file after xsl: must not contain dots (%s)\n", arg);
+        printf("xmq: file after xsl: must not contain dots (%s)\n", file);
         exit(1);
     }
 

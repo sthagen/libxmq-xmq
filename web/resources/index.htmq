@@ -44,10 +44,6 @@ html {
             button(type    = button
                    title   = 'Max 200KB, logs cleared after 30 days.'
                    onclick = '''document.getElementById('uploadFile').click()''') = 'Upload your own XML/HTML/JSON and render as XMQ'
-            ' '
-            button(type    = button
-                   title   = 'Max 200KB, logs cleared after 30 days.'
-                   onclick = '''toggleIXML();''') = 'Use IXML'
         }
         div {
             a(href = https://github.com/libxmq/xmq/releases/latest) = '[Download Executables]'
