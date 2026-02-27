@@ -393,6 +393,7 @@ void put_char(int c);
 bool query_xterm_bgcolor();
 KEY read_key(int *c);
 const char *render_format_to_string(XMQRenderFormat rt);
+int replace_xpath_content(xmlDocPtr doc, const char *xpath, const char *content);
 void replace_entities(xmlDoc *doc, const char *entity, const char *content, xmlNodePtr node_content);
 xmlNodePtr replace_entity(xmlDoc *doc, xmlNodePtr node, const char *entity, const char *content, xmlNodePtr node_content);
 void restoreStdinTerminal();
@@ -2849,6 +2850,49 @@ bool delete_xpath(XMQCliCommand *command)
     return true;
 }
 
+int replace_xpath_content(xmlDocPtr doc, const char *xpath, const char *content)
+{
+    if (doc == NULL || xpath == NULL || content == NULL) {
+        return -1;
+    }
+
+    int ret = -1;
+    xmlXPathContextPtr ctx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+
+    ctx = xmlXPathNewContext(doc);
+    if (ctx == NULL) {
+        goto cleanup;
+    }
+
+    xpathObj = xmlXPathEvalExpression((const xmlChar *)xpath, ctx);
+    if (xpathObj == NULL || xpathObj->type != XPATH_NODESET) {
+        goto cleanup;
+    }
+
+    xmlNodeSetPtr nodes = xpathObj->nodesetval;
+    if (nodes == NULL || nodes->nodeNr == 0) {
+        goto cleanup;
+    }
+
+    /* Replace content of first matched node */
+    xmlNodePtr node = nodes->nodeTab[0];
+    if (node == NULL) {
+        goto cleanup;
+    }
+
+    xmlNodeSetContent(node, (const xmlChar *)content);
+    ret = 0;  /* Success */
+
+cleanup:
+    if (xpathObj)
+        xmlXPathFreeObject(xpathObj);
+    if (ctx)
+        xmlXPathFreeContext(ctx);
+
+    return ret;
+}
+
 xmlNode *replace_entity(xmlDoc *doc, xmlNode *node, const char *entity, const char *content, xmlNodePtr node_content)
 {
     if (!node) return NULL;
@@ -2940,6 +2984,12 @@ bool cmd_replace(XMQCliCommand *command)
     if (command->xpath)
     {
         verbose_("xmq=", "replacing xpath %s", command->xpath);
+        const char *ep = strchr(command->xpath, '=');
+        char *xpath = strndup(command->xpath, ep-command->xpath);
+        char *value = strdup(ep+1);
+        replace_xpath_content(doc, xpath, value);
+        free(xpath);
+        free(value);
     }
 
     if (command->entity)
