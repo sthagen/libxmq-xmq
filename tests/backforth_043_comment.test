@@ -1,0 +1,20 @@
+INPUT
+alfa{
+/* {
+   }
+  */
+}
+FIRST
+<?xml version="1.0" encoding="utf-8"?>
+<alfa><!--{
+}--></alfa>
+SECOND
+alfa {
+    /* {
+       } */
+}
+END
+ARGS_FIRST
+CMDS_FIRST to-xml
+ARGS_SECOND --trim=none
+CMDS_SECOND to-xmq
