@@ -1,3 +1,5 @@
+2026-03-18: Version 4.1.0-RC1
+
 Fix bug where certain indentation inside comments caused an assertion.
 Support compilation with filcc.
 Support valgrind test.
