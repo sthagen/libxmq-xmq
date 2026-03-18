@@ -1,3 +1,10 @@
+Fix bug where certain indentation inside comments caused an assertion.
+Support compilation with filcc.
+Support valgrind test.
+Support compilation to wasm.
+Fix build of xmq with static links to libxml2,libxslt and libz.
+Single line comments should keep the leading slashes except the first two.
+
 2025-08-04: Version 4.0.1
 2025-08-04: Version 4.0.1-RC1
 
