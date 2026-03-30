@@ -170,13 +170,13 @@ This command will render the content as xmq/htmq for presentation at a terminal,
 .br
 \fB--color / --mono\fP By default, xmq generates syntax colored output if writing to a terminal.
 You can force it to produce color even if writing to a pipe or a file using --color, and disable color with --mono.
-Colors can be configured with the XMQ_COLORS environment variable (see below).
+Colors can be configured with the XMQ_THEME environment variable.
 
 .br
 \fB--id=abc\fP When rendering html mark the pre tag with this id.
 
 .br
-\fB--lightbg / --darkbg\fP Use a colorscheme suitable for a light background or a dark background.
+\fB--theme=light / --theme=dark\fP Force a colorscheme suitable for a light background or a dark background. Useful if terminal background color detection does not work. You can also export these as XMQ_THEME=light and XMQ_THEME=dark.
 
 .br
 \fB--nostyle\fP Do not output html/tex preamble/postamble.

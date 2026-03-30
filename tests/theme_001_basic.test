@@ -1,0 +1,21 @@
+INPUT
+hello
+// hello
+OUTPUT
+\definecolor{xmqC}{RGB}{0,0,0}
+\definecolor{xmqQ}{RGB}{38,162,105}
+\definecolor{xmqE}{RGB}{192,97,203}
+\definecolor{xmqNS}{RGB}{105,105,105}
+\definecolor{xmqEN}{RGB}{168,108,0}
+\definecolor{xmqEK}{RGB}{0,96,253}
+\definecolor{xmqEKV}{RGB}{38,162,105}
+\definecolor{xmqAK}{RGB}{0,96,253}
+\definecolor{xmqAKV}{RGB}{18,72,140}
+\definecolor{xmqCP}{RGB}{192,97,203}
+\definecolor{xmqNSD}{RGB}{26,145,163}
+\definecolor{xmqUW}{RGB}{136,0,0}
+\definecolor{xmqXSL}{RGB}{192,97,203}
+END
+ENV XMQ_THEME=C=#000000
+ARGS
+CMDS

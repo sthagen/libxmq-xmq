@@ -157,6 +157,7 @@ typedef enum XMQColor {
 #define NUM_XMQ_COLOR_NAMES 13
 
 const char* colorName(int i);
+int colorShortNameToIndex(const char *name);
 
 typedef struct XMQColorDef {
     int r, g, b;
@@ -279,7 +280,36 @@ bool coreParseI64(const char *s, int64_t *out);
 struct XMQTheme;
 typedef struct XMQTheme XMQTheme;
 
-void installDefaultThemeColors(XMQTheme *theme);
+/**
+   A theme_spec looks like this:
+   export XMQ_THEME=C=#ffffff:Q=#ff0000:E=#ff0000
+   This will override the colors for the comments, quotes and entities, for both dark and light modes.
+
+   export XMQ_THEME=dark+C=#ff0000_U:AKV=#00ff00_B,light+E=#000000
+   This will make different overrides for dark and light modes.
+
+   export XMQ_THEME_moo=dark+C=ffff00:AKV=001122_B,light+E=112233
+   You can now specify --theme=moo and depending on the background moo-dark or moo-light will be used.
+   You can force --theme=moo-light to use the light settings of moo and likewise for moo-dark.
+
+   There are the available colors:
+   C comment
+   Q quote
+   E entity
+   NS name space
+   EN element name with children
+   EK element name as key
+   EKV element key value
+   AK attribute key
+   AKV attribute key value
+   CP composiste parentheses
+   NSD name space declaration
+   UW unicode whitespace
+   XLS the xls namespace
+
+*/
+
+bool installTheme(XMQTheme *theme, const char *theme_spec);
 const char *ansiWin(int i);
 
 #define DEFAULT_THEMES_MODULE
@@ -524,6 +554,8 @@ const char **unicode_lookup_category_parts(const char *name);
 bool unicode_get_category_part(const char *part, int **out_cat, size_t *out_cat_len);
 
 bool category_has_code(int code, int *cat, size_t cat_len);
+
+bool ends_with(const char *start, const char *stop, const char *pattern);
 
 #define TEXT_MODULE
 
@@ -3039,7 +3071,7 @@ struct XMQDoc
     // ['a'-'z'] shrinks down to ['a';'b']
     YaepParseRun *yaep_parse_run_; // The currently executing parse variables.
     YaepGrammar *yaep_grammar_; // The yaep grammar to be used by the run.
-    XMQParseState *yaep_parse_state_; // The parse state used to parse the ixml grammar.
+    XMQParseState *xmq_parse_state_; // The parse state used to parse the ixml grammar.
 };
 
 #ifdef __cplusplus
@@ -3092,7 +3124,8 @@ struct XMQOutputSettings
     XMQRenderFormat render_to;
     bool render_raw;
     bool only_style;
-    const char *render_theme;
+    // For example lightbg:C=ff0000_U:AKV=00ffff:nl=' '
+    const char *render_theme_spec;
 
     XMQWriter content;
     XMQWriter error;
@@ -3470,7 +3503,7 @@ void xmq_setup_parse_callbacks(XMQParseCallbacks *callbacks);
 void xmq_set_yaep_grammar(XMQDoc *doc, YaepGrammar *g);
 YaepGrammar *xmq_get_yaep_grammar(XMQDoc *doc);
 YaepParseRun *xmq_get_yaep_parse_run(XMQDoc *doc);
-XMQParseState *xmq_get_yaep_parse_state(XMQDoc *doc);
+XMQParseState *xmq_get_xmq_parse_state(XMQDoc *doc);
 
 void set_node_namespace(XMQParseState *state, xmlNodePtr node, const char *node_name);
 
@@ -3670,25 +3703,25 @@ void xmqSetupDefaultColors(XMQOutputSettings *os)
 {
     bool dark_mode = os->bg_dark_mode;
     XMQTheme *theme = os->theme;
-    if (os->render_theme == NULL)
+    if (os->render_theme_spec == NULL)
     {
         if (os->render_to == XMQ_RENDER_TEX) dark_mode = false;
-        os->render_theme = dark_mode?"darkbg":"lightbg";
+        os->render_theme_spec = dark_mode?"dark":"light";
     }
     else
     {
-        if (!strcmp(os->render_theme, "darkbg"))
+        if (ends_with(os->render_theme_spec, NULL, "-dark"))
         {
             dark_mode = true;
         }
-        else if (!strcmp(os->render_theme, "lightbg"))
+        if (ends_with(os->render_theme_spec, NULL, "-light"))
         {
             dark_mode = false;
         }
     }
 
-    verbose("xmq=", "use theme %s", os->render_theme);
-    installDefaultThemeColors(theme);
+    verbose("xmq=", "use theme %s", os->render_theme_spec);
+    installTheme(theme, os->render_theme_spec);
 
     os->indentation_space = theme->indentation_space; // " ";
     os->explicit_space = theme->explicit_space; // " ";
@@ -4272,9 +4305,9 @@ void xmqSetRenderRaw(XMQOutputSettings *os, bool render_raw)
     os->render_raw = render_raw;
 }
 
-void xmqSetRenderTheme(XMQOutputSettings *os, const char *theme_name)
+void xmqSetRenderTheme(XMQOutputSettings *os, const char *theme_spec)
 {
-    os->render_theme = theme_name;
+    os->render_theme_spec = theme_spec;
 }
 
 void xmqSetRenderOnlyStyle(XMQOutputSettings *os, bool only_style)
@@ -5352,10 +5385,10 @@ void xmqFreeDoc(XMQDoc *doq)
     {
         yaepFreeGrammar (doq->yaep_parse_run_, doq->yaep_grammar_);
         yaepFreeParseRun (doq->yaep_parse_run_);
-        xmqFreeParseState(doq->yaep_parse_state_);
+        xmqFreeParseState(doq->xmq_parse_state_);
         doq->yaep_grammar_ = NULL;
         doq->yaep_parse_run_ = NULL;
-        doq->yaep_parse_state_ = NULL;
+        doq->xmq_parse_state_ = NULL;
     }
 
     debug("xmq=", "freeing xmq doc");
@@ -7874,7 +7907,7 @@ bool xmq_parse_buffer_ixml(XMQDoc *ixml_grammar,
     YaepParseRun *run = yaepNewParseRun(grammar);
     ixml_grammar->yaep_grammar_ = grammar;
     ixml_grammar->yaep_parse_run_ = run;
-    ixml_grammar->yaep_parse_state_ = state;
+    ixml_grammar->xmq_parse_state_ = state;
     if (xmqVerbose()) run->verbose = true;
     if (xmqDebugging()) run->debug = run->verbose = true;
     if (xmqTracing()) run->trace = run->debug = run->verbose = true;
@@ -7918,9 +7951,9 @@ YaepParseRun *xmq_get_yaep_parse_run(XMQDoc *doc)
     return doc->yaep_parse_run_;
 }
 
-XMQParseState *xmq_get_yaep_parse_state(XMQDoc *doc)
+XMQParseState *xmq_get_xmq_parse_state(XMQDoc *doc)
 {
-    return doc->yaep_parse_state_;
+    return doc->xmq_parse_state_;
 }
 
 void add_key_number(xmlDoc *doc, xmlNode *root, const char *key, int value)
@@ -8218,7 +8251,7 @@ bool xmqParseBufferWithIXML(XMQDoc *doc, const char *start, const char *stop, XM
     if (!doc || !start || !ixml_grammar) return false;
     if (!stop) stop = start+strlen(start);
 
-    XMQParseState *state = xmq_get_yaep_parse_state(ixml_grammar);
+    XMQParseState *state = xmq_get_xmq_parse_state(ixml_grammar);
 
     // Now add all character terminals in the content (not yet added) to the grammar.
     // And rewrite charsets into rules with multiple choice shrunk to the actual usage of characters in the input.
@@ -9047,6 +9080,24 @@ const char* colorName(int i)
     return color_names[i];
 }
 
+int colorShortNameToIndex(const char *name)
+{
+    if (!strcmp(name, "C")) return 0; // Comment
+    if (!strcmp(name, "Q")) return 1; // Quote
+    if (!strcmp(name, "E")) return 2; // Entity
+    if (!strcmp(name, "NS")) return 3; // Name Space (both for element and attribute)
+    if (!strcmp(name, "EN")) return 4; // Element Name
+    if (!strcmp(name, "EK")) return 5; // Element Key
+    if (!strcmp(name, "EKV")) return 6; // Element Key Value
+    if (!strcmp(name, "AK")) return 7; // Attribute Key
+    if (!strcmp(name, "AKV")) return 8; // Attribute Key Value
+    if (!strcmp(name, "CP")) return 9; // Compound Parentheses
+    if (!strcmp(name, "NSD")) return 10; // Name Space declaration xmlns
+    if (!strcmp(name, "UW")) return 11; // Unicode whitespace
+    if (!strcmp(name, "XSL")) return 12; // Element color for xsl transform elements.
+    return -1;
+}
+
 void setColorDef(XMQColorDef *cd, int r, int g, int b, bool bold, bool underline);
 
 void setColorDef(XMQColorDef *cd, int r, int g, int b, bool bold, bool underline)
@@ -9117,7 +9168,10 @@ bool coreParseI64(const char *s, int64_t *out)
 
 #ifdef DEFAULT_THEMES_MODULE
 
-const char *defaultColor(int i, const char *theme_name);
+const char *default_color(int i, const char *theme_name);
+void install_default_colors(XMQTheme *theme);
+bool install_single_color(XMQTheme *theme, const char *name, const char *color, bool dark, bool light);
+bool install_theme(XMQTheme *theme, const char *single_theme);
 
 const char *default_darkbg_colors[NUM_XMQ_COLOR_NAMES] = {
     "#2aa1b3", // XMQ_COLOR_C
@@ -9172,27 +9226,131 @@ const char *ansiWin(int i)
     return win_darkbg_ansi[i];
 }
 
-const char *defaultColor(int i, const char *theme_name)
+const char *default_color(int i, const char *theme_name)
 {
-    if (!strcmp(theme_name, "lightbg")) return default_lightbg_colors[i];
+    if (!strcmp(theme_name, "light")) return default_lightbg_colors[i];
     return default_darkbg_colors[i];
 }
 
-void installDefaultThemeColors(XMQTheme *theme)
+bool install_single_color(XMQTheme *theme, const char *name, const char *color, bool dark, bool light)
 {
+    bool ok = true;
+
+    if (dark)
+    {
+        XMQColorDef *colors = theme->colors_darkbg;
+        int i = colorShortNameToIndex(name);
+        if (i < 0) return false;
+        ok &= string_to_color_def(color, &colors[i]);
+    }
+
+    if (light)
+    {
+        XMQColorDef *colors = theme->colors_lightbg;
+        int i = colorShortNameToIndex(name);
+        if (i < 0) return false;
+        ok &= string_to_color_def(color, &colors[i]);
+    }
+
+    return ok;
+}
+
+void install_default_colors(XMQTheme *theme)
+{
+    // First install the default colors.
     XMQColorDef *colors = theme->colors_darkbg;
     for (int i = 0; i < NUM_XMQ_COLOR_NAMES; ++i)
     {
-        const char *color = defaultColor(i, "darkbg");
+        const char *color = default_color(i, "dark");
         string_to_color_def(color, &colors[i]);
     }
 
     colors = theme->colors_lightbg;
     for (int i = 0; i < NUM_XMQ_COLOR_NAMES; ++i)
     {
-        const char *color = defaultColor(i, "lightbg");
+        const char *color = default_color(i, "light");
         string_to_color_def(color, &colors[i]);
     }
+}
+
+bool install_theme(XMQTheme *theme, const char *single_theme)
+{
+    bool dark = true;
+    bool light = true;
+
+    const char *i = single_theme;
+    const char *stop = single_theme+strlen(single_theme);
+
+    const char *plus = strchr(single_theme, '+');
+    if (plus)
+    {
+        if (!strncmp(single_theme, "dark+", 5)) light = false;
+        else if (!strncmp(single_theme, "light+", 6)) dark = false;
+        else return false;
+        i = plus+1;
+    }
+
+    while (i < stop)
+    {
+        const char *eq = strchr(i, '=');
+        if (!eq) return false;
+        size_t len = eq-i;
+        // All theme names are three character or less.
+        if (len > 3) return false;
+
+        char name[4];
+        memset(name, 0, sizeof(name));
+        strncpy(name, i, len);
+
+        const char *col = strchr(i, ':');
+        if (!col) col = stop;
+
+        i = eq+1;
+        // 112233_B_U max len is 10
+        char color[17];
+        memset(color, 0, sizeof(color));
+        len = col-i;
+
+        if (len > 16) return false;
+        strncpy(color, i, len);
+
+        bool ok = install_single_color(theme, name, color, dark, light);
+        if (!ok) return false;
+        i = col+1;
+    }
+    return true;
+}
+
+bool installTheme(XMQTheme *theme, const char *theme_spec)
+{
+    // First install the default colors for dark and light.
+    install_default_colors(theme);
+
+    // Split into dark light
+    size_t len = strlen(theme_spec);
+
+    // Avoid overly long themes.
+    if (len > 2048) return false;
+
+    char first[2048];
+    char second[2048];
+
+    const char *i = strchr(theme_spec, ',');
+    if (i)
+    {
+        strncpy(first, theme_spec, i-theme_spec);
+        strcpy(second, i+1);
+    }
+    else
+    {
+        strcpy(first, theme_spec);
+        second[0] = 0;
+    }
+
+    bool ok = install_theme(theme, first);
+    ok &= install_theme(theme, second);
+
+    return ok;
 }
 
 #endif // DEFAULT_THEMES_MODULE
@@ -15065,6 +15223,21 @@ bool is_unicode_whitespace(const char *start, const char *stop)
     return n > 1;
 }
 
+bool ends_with(const char *start, const char *stop, const char *pattern)
+{
+    size_t len = 0;
+    if (!stop)
+    {
+        len = strlen(start);
+        stop = start+len;
+    }
+    else
+    {
+        len = stop-start;
+    }
+    return !strncmp(stop-len, pattern, len);
+}
+
 #endif // TEXT_MODULE
 
 // PART C UTF8_C ////////////////////////////////////////
@@ -18922,6 +19095,7 @@ void annotate_node(OffsetCounter *counter, xmlNode *node)
     char buf[64];
     snprintf(buf, 64, "%d", counter->offset);
     xmlSetProp(node, (xmlChar*)counter->attribute_name, (xmlChar*)buf);
+    if (!node) return;
     if (node->type == XML_ELEMENT_NODE)
     {
         xmlNode *i = xml_first_child(node);

@@ -208,35 +208,43 @@ cars {
 
 ## Colors and themes
 
-You can set the current theme with `export XMQ_THEME=mytheme`
-Each theme can be configured in a light and dark version.
+Xmq tries to detect the background color of the terminal. This is used
+to select different color palettes in light and dark modes.
 
-`export XMQ_THEME_default_dark="...."`
-`export XMQ_THEME_mytheme_light="...."`
+Even if you are running within a dark terminal you can force a light coloring with `export XMQ_THEME=light`
+and vice versa. This is usefule when spawning a browser and you want a different mode in the browser.
+For example: `export XMQ_THEME=light xmq info.xml br`
 
-Or if the colors are the same for dark and light.
-`export XMQ_THEME_mytheme="...."`
+A more complex way to set the theme is: `xmq info.xml render-html --theme=light br`
 
-You can override the current theme in xmq.
-`export XMQ_THEME_OVERRIDE="...."`
-
+There are 15 color settings when rendering xmq that can be modified.
 ```
-FG=
-BG=
-C=
-Q=
-E=
-NS=
-EN=
-EK=
-EKV=
-AK=
-AKV=
-CP=
-NSD=
-UW=
-XSL=
+C comments
+Q quotes
+E entitites
+NS name spaces
+EN element names (not keys)
+EK element keys (not names)
+EKV element key values
+AK attribute keys
+AKV attribute key values
+CP composite parentheses
+NSD name space declaration
+UW unicode whitespace (not normal spaces, instead unbreakable space etc)
+XSL the name space with the label xsl (improve readability of xsl transforms)
+FG foreground color (white on dark background, black on light backgrounds)
+BG background color (usually the terminals own color, but can be changed for html)
 ```
+
+You can override a single color for both dark and light modes with:
+`export XMQ_THEME=C=#ff0000` which will force RGB ff0000 (aka red) for comments.
+
+You can make the override dark/light sensitive with: `export XMQ_THEME=dark+C=#ff0000,light+C=#880000`
+
+You can make override more than one color: `export XMQ_THEME=C=#ff0000_B:Q=#00ffff_U:EKV=#112233_U_B`
+where the comments are also bold, the quotes are underlined and the element key values are both
+underlined and bold, in addition to their new colors.
+
 ## Using xmq.h and xmq.c in your program
 
 If you want to add support for xmq to your program, just copy paste
