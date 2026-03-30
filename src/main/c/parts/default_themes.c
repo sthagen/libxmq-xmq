@@ -30,7 +30,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
 #ifdef DEFAULT_THEMES_MODULE
 
-const char *defaultColor(int i, const char *theme_name);
+const char *default_color(int i, const char *theme_name);
+void install_default_colors(XMQTheme *theme);
+bool install_single_color(XMQTheme *theme, const char *name, const char *color, bool dark, bool light);
+bool install_theme(XMQTheme *theme, const char *single_theme);
 
 const char *default_darkbg_colors[NUM_XMQ_COLOR_NAMES] = {
     "#2aa1b3", // XMQ_COLOR_C
@@ -85,27 +88,131 @@ const char *ansiWin(int i)
     return win_darkbg_ansi[i];
 }
 
-const char *defaultColor(int i, const char *theme_name)
+const char *default_color(int i, const char *theme_name)
 {
-    if (!strcmp(theme_name, "lightbg")) return default_lightbg_colors[i];
+    if (!strcmp(theme_name, "light")) return default_lightbg_colors[i];
     return default_darkbg_colors[i];
 }
 
-void installDefaultThemeColors(XMQTheme *theme)
+bool install_single_color(XMQTheme *theme, const char *name, const char *color, bool dark, bool light)
 {
+    bool ok = true;
+
+    if (dark)
+    {
+        XMQColorDef *colors = theme->colors_darkbg;
+        int i = colorShortNameToIndex(name);
+        if (i < 0) return false;
+        ok &= string_to_color_def(color, &colors[i]);
+    }
+
+    if (light)
+    {
+        XMQColorDef *colors = theme->colors_lightbg;
+        int i = colorShortNameToIndex(name);
+        if (i < 0) return false;
+        ok &= string_to_color_def(color, &colors[i]);
+    }
+
+    return ok;
+}
+
+void install_default_colors(XMQTheme *theme)
+{
+    // First install the default colors.
     XMQColorDef *colors = theme->colors_darkbg;
     for (int i = 0; i < NUM_XMQ_COLOR_NAMES; ++i)
     {
-        const char *color = defaultColor(i, "darkbg");
+        const char *color = default_color(i, "dark");
         string_to_color_def(color, &colors[i]);
     }
 
     colors = theme->colors_lightbg;
     for (int i = 0; i < NUM_XMQ_COLOR_NAMES; ++i)
     {
-        const char *color = defaultColor(i, "lightbg");
+        const char *color = default_color(i, "light");
         string_to_color_def(color, &colors[i]);
     }
+}
+
+bool install_theme(XMQTheme *theme, const char *single_theme)
+{
+    bool dark = true;
+    bool light = true;
+
+    const char *i = single_theme;
+    const char *stop = single_theme+strlen(single_theme);
+
+    const char *plus = strchr(single_theme, '+');
+    if (plus)
+    {
+        if (!strncmp(single_theme, "dark+", 5)) light = false;
+        else if (!strncmp(single_theme, "light+", 6)) dark = false;
+        else return false;
+        i = plus+1;
+    }
+
+    while (i < stop)
+    {
+        const char *eq = strchr(i, '=');
+        if (!eq) return false;
+        size_t len = eq-i;
+        // All theme names are three character or less.
+        if (len > 3) return false;
+
+        char name[4];
+        memset(name, 0, sizeof(name));
+        strncpy(name, i, len);
+
+        const char *col = strchr(i, ':');
+        if (!col) col = stop;
+
+        i = eq+1;
+        // 112233_B_U max len is 10
+        char color[17];
+        memset(color, 0, sizeof(color));
+        len = col-i;
+
+        if (len > 16) return false;
+        strncpy(color, i, len);
+
+        bool ok = install_single_color(theme, name, color, dark, light);
+        if (!ok) return false;
+        i = col+1;
+    }
+    return true;
+}
+
+bool installTheme(XMQTheme *theme, const char *theme_spec)
+{
+    // First install the default colors for dark and light.
+    install_default_colors(theme);
+
+    // Split into dark light
+    size_t len = strlen(theme_spec);
+
+    // Avoid overly long themes.
+    if (len > 2048) return false;
+
+    char first[2048];
+    char second[2048];
+
+    const char *i = strchr(theme_spec, ',');
+    if (i)
+    {
+        strncpy(first, theme_spec, i-theme_spec);
+        strcpy(second, i+1);
+    }
+    else
+    {
+        strcpy(first, theme_spec);
+        second[0] = 0;
+    }
+
+    bool ok = install_theme(theme, first);
+    ok &= install_theme(theme, second);
+
+    return ok;
 }
 
 #endif // DEFAULT_THEMES_MODULE

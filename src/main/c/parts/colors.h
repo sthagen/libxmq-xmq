@@ -88,6 +88,7 @@ typedef enum XMQColor {
 #define NUM_XMQ_COLOR_NAMES 13
 
 const char* colorName(int i);
+int colorShortNameToIndex(const char *name);
 
 typedef struct XMQColorDef {
     int r, g, b;

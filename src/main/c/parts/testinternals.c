@@ -1,6 +1,7 @@
 
 #include"colors.h"
 #include"core.h"
+#include"default_themes.h"
 #include"hashmap.h"
 #include"quicksort_strings.h"
 #include"stack.h"
@@ -18,6 +19,8 @@
     X(test_binary_search) \
     X(test_colors) \
     X(test_objstack) \
+    X(test_theme) \
+
 
 #define X(name) void name();
 TESTS
@@ -186,6 +189,12 @@ void test_objstack()
     free(s);
     OS_DELETE(test_os);
     yaep_alloc_del(allocator);
+}
+
+void test_theme()
+{
+    XMQTheme t;
+    installTheme(&t, "C=112233");
 }
 
 /*

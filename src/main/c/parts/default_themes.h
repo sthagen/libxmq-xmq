@@ -29,7 +29,36 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 struct XMQTheme;
 typedef struct XMQTheme XMQTheme;
 
-void installDefaultThemeColors(XMQTheme *theme);
+/**
+   A theme_spec looks like this:
+   export XMQ_THEME=C=#ffffff:Q=#ff0000:E=#ff0000
+   This will override the colors for the comments, quotes and entities, for both dark and light modes.
+
+   export XMQ_THEME=dark+C=#ff0000_U:AKV=#00ff00_B,light+E=#000000
+   This will make different overrides for dark and light modes.
+
+   export XMQ_THEME_moo=dark+C=ffff00:AKV=001122_B,light+E=112233
+   You can now specify --theme=moo and depending on the background moo-dark or moo-light will be used.
+   You can force --theme=moo-light to use the light settings of moo and likewise for moo-dark.
+
+   There are the available colors:
+   C comment
+   Q quote
+   E entity
+   NS name space
+   EN element name with children
+   EK element name as key
+   EKV element key value
+   AK attribute key
+   AKV attribute key value
+   CP composiste parentheses
+   NSD name space declaration
+   UW unicode whitespace
+   XLS the xls namespace
+
+*/
+
+bool installTheme(XMQTheme *theme, const char *theme_spec);
 const char *ansiWin(int i);
 
 #define DEFAULT_THEMES_MODULE

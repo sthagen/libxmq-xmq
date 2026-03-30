@@ -254,6 +254,24 @@ const char* colorName(int i)
     return color_names[i];
 }
 
+int colorShortNameToIndex(const char *name)
+{
+    if (!strcmp(name, "C")) return 0; // Comment
+    if (!strcmp(name, "Q")) return 1; // Quote
+    if (!strcmp(name, "E")) return 2; // Entity
+    if (!strcmp(name, "NS")) return 3; // Name Space (both for element and attribute)
+    if (!strcmp(name, "EN")) return 4; // Element Name
+    if (!strcmp(name, "EK")) return 5; // Element Key
+    if (!strcmp(name, "EKV")) return 6; // Element Key Value
+    if (!strcmp(name, "AK")) return 7; // Attribute Key
+    if (!strcmp(name, "AKV")) return 8; // Attribute Key Value
+    if (!strcmp(name, "CP")) return 9; // Compound Parentheses
+    if (!strcmp(name, "NSD")) return 10; // Name Space declaration xmlns
+    if (!strcmp(name, "UW")) return 11; // Unicode whitespace
+    if (!strcmp(name, "XSL")) return 12; // Element color for xsl transform elements.
+    return -1;
+}
+
 void setColorDef(XMQColorDef *cd, int r, int g, int b, bool bold, bool underline);
 
 void setColorDef(XMQColorDef *cd, int r, int g, int b, bool bold, bool underline)

@@ -1005,4 +1005,19 @@ bool is_unicode_whitespace(const char *start, const char *stop)
     return n > 1;
 }
 
+bool ends_with(const char *start, const char *stop, const char *pattern)
+{
+    size_t len = 0;
+    if (!stop)
+    {
+        len = strlen(start);
+        stop = start+len;
+    }
+    else
+    {
+        len = stop-start;
+    }
+    return !strncmp(stop-len, pattern, len);
+}
+
 #endif // TEXT_MODULE

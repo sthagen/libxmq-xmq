@@ -130,7 +130,7 @@ struct XMQDoc
     // ['a'-'z'] shrinks down to ['a';'b']
     YaepParseRun *yaep_parse_run_; // The currently executing parse variables.
     YaepGrammar *yaep_grammar_; // The yaep grammar to be used by the run.
-    XMQParseState *yaep_parse_state_; // The parse state used to parse the ixml grammar.
+    XMQParseState *xmq_parse_state_; // The parse state used to parse the ixml grammar.
 };
 
 #ifdef __cplusplus
@@ -183,7 +183,8 @@ struct XMQOutputSettings
     XMQRenderFormat render_to;
     bool render_raw;
     bool only_style;
-    const char *render_theme;
+    // For example lightbg:C=ff0000_U:AKV=00ffff:nl=' '
+    const char *render_theme_spec;
 
     XMQWriter content;
     XMQWriter error;
@@ -561,7 +562,7 @@ void xmq_setup_parse_callbacks(XMQParseCallbacks *callbacks);
 void xmq_set_yaep_grammar(XMQDoc *doc, YaepGrammar *g);
 YaepGrammar *xmq_get_yaep_grammar(XMQDoc *doc);
 YaepParseRun *xmq_get_yaep_parse_run(XMQDoc *doc);
-XMQParseState *xmq_get_yaep_parse_state(XMQDoc *doc);
+XMQParseState *xmq_get_xmq_parse_state(XMQDoc *doc);
 
 void set_node_namespace(XMQParseState *state, xmlNodePtr node, const char *node_name);
 

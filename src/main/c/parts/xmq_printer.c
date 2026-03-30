@@ -1750,6 +1750,7 @@ void annotate_node(OffsetCounter *counter, xmlNode *node)
     char buf[64];
     snprintf(buf, 64, "%d", counter->offset);
     xmlSetProp(node, (xmlChar*)counter->attribute_name, (xmlChar*)buf);
+    if (!node) return;
     if (node->type == XML_ELEMENT_NODE)
     {
         xmlNode *i = xml_first_child(node);

@@ -206,6 +206,37 @@ cars {
 }
 ```
 
+## Colors and themes
+
+You can set the current theme with `export XMQ_THEME=mytheme`
+Each theme can be configured in a light and dark version.
+
+`export XMQ_THEME_default_dark="...."`
+`export XMQ_THEME_mytheme_light="...."`
+
+Or if the colors are the same for dark and light.
+`export XMQ_THEME_mytheme="...."`
+
+You can override the current theme in xmq.
+`export XMQ_THEME_OVERRIDE="...."`
+
+```
+FG=
+BG=
+C=
+Q=
+E=
+NS=
+EN=
+EK=
+EKV=
+AK=
+AKV=
+CP=
+NSD=
+UW=
+XSL=
+```
 ## Using xmq.h and xmq.c in your program
 
 If you want to add support for xmq to your program, just copy paste

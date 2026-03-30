@@ -179,25 +179,25 @@ void xmqSetupDefaultColors(XMQOutputSettings *os)
 {
     bool dark_mode = os->bg_dark_mode;
     XMQTheme *theme = os->theme;
-    if (os->render_theme == NULL)
+    if (os->render_theme_spec == NULL)
     {
         if (os->render_to == XMQ_RENDER_TEX) dark_mode = false;
-        os->render_theme = dark_mode?"darkbg":"lightbg";
+        os->render_theme_spec = dark_mode?"dark":"light";
     }
     else
     {
-        if (!strcmp(os->render_theme, "darkbg"))
+        if (ends_with(os->render_theme_spec, NULL, "-dark"))
         {
             dark_mode = true;
         }
-        else if (!strcmp(os->render_theme, "lightbg"))
+        if (ends_with(os->render_theme_spec, NULL, "-light"))
         {
             dark_mode = false;
         }
     }
 
-    verbose("xmq=", "use theme %s", os->render_theme);
-    installDefaultThemeColors(theme);
+    verbose("xmq=", "use theme %s", os->render_theme_spec);
+    installTheme(theme, os->render_theme_spec);
 
     os->indentation_space = theme->indentation_space; // " ";
     os->explicit_space = theme->explicit_space; // " ";
@@ -781,9 +781,9 @@ void xmqSetRenderRaw(XMQOutputSettings *os, bool render_raw)
     os->render_raw = render_raw;
 }
 
-void xmqSetRenderTheme(XMQOutputSettings *os, const char *theme_name)
+void xmqSetRenderTheme(XMQOutputSettings *os, const char *theme_spec)
 {
-    os->render_theme = theme_name;
+    os->render_theme_spec = theme_spec;
 }
 
 void xmqSetRenderOnlyStyle(XMQOutputSettings *os, bool only_style)
@@ -1861,10 +1861,10 @@ void xmqFreeDoc(XMQDoc *doq)
     {
         yaepFreeGrammar (doq->yaep_parse_run_, doq->yaep_grammar_);
         yaepFreeParseRun (doq->yaep_parse_run_);
-        xmqFreeParseState(doq->yaep_parse_state_);
+        xmqFreeParseState(doq->xmq_parse_state_);
         doq->yaep_grammar_ = NULL;
         doq->yaep_parse_run_ = NULL;
-        doq->yaep_parse_state_ = NULL;
+        doq->xmq_parse_state_ = NULL;
     }
 
     debug("xmq=", "freeing xmq doc");
@@ -4383,7 +4383,7 @@ bool xmq_parse_buffer_ixml(XMQDoc *ixml_grammar,
     YaepParseRun *run = yaepNewParseRun(grammar);
     ixml_grammar->yaep_grammar_ = grammar;
     ixml_grammar->yaep_parse_run_ = run;
-    ixml_grammar->yaep_parse_state_ = state;
+    ixml_grammar->xmq_parse_state_ = state;
     if (xmqVerbose()) run->verbose = true;
     if (xmqDebugging()) run->debug = run->verbose = true;
     if (xmqTracing()) run->trace = run->debug = run->verbose = true;
@@ -4427,9 +4427,9 @@ YaepParseRun *xmq_get_yaep_parse_run(XMQDoc *doc)
     return doc->yaep_parse_run_;
 }
 
-XMQParseState *xmq_get_yaep_parse_state(XMQDoc *doc)
+XMQParseState *xmq_get_xmq_parse_state(XMQDoc *doc)
 {
-    return doc->yaep_parse_state_;
+    return doc->xmq_parse_state_;
 }
 
 void add_key_number(xmlDoc *doc, xmlNode *root, const char *key, int value)
@@ -4727,7 +4727,7 @@ bool xmqParseBufferWithIXML(XMQDoc *doc, const char *start, const char *stop, XM
     if (!doc || !start || !ixml_grammar) return false;
     if (!stop) stop = start+strlen(start);
 
-    XMQParseState *state = xmq_get_yaep_parse_state(ixml_grammar);
+    XMQParseState *state = xmq_get_xmq_parse_state(ixml_grammar);
 
     // Now add all character terminals in the content (not yet added) to the grammar.
     // And rewrite charsets into rules with multiple choice shrunk to the actual usage of characters in the input.

@@ -136,12 +136,6 @@ typedef enum {
     XMQ_CLI_CMD_GROUP_QUOTE,
 } XMQCliCmdGroup;
 
-typedef enum {
-    XMQ_RENDER_MONO = 0,
-    XMQ_RENDER_COLOR_DARKBG = 1,
-    XMQ_RENDER_COLOR_LIGHTBG= 2
-} XMQRenderStyle;
-
 typedef struct XMQCliEnvironment XMQCliEnvironment;
 struct XMQCliEnvironment;
 
@@ -195,7 +189,7 @@ struct XMQCliCommand
     XMQRenderFormat render_to;
     bool render_raw;
     bool only_style;
-    const char *render_theme; // A named coloring.
+    const char *render_theme_spec; // Specify the theme from the cli --theme=... or XMQ_THEME=
     int  flags;
     bool use_color; // Uses color or not for terminal/html/tex
     bool bg_dark_mode; // Terminal has dark background.
@@ -400,7 +394,7 @@ void restoreStdinTerminal();
 bool shell_safe(char *i);
 const char *skip_ansi_backwards(const char *i, const char *start);
 void substitute_entity(xmlDoc *doc, xmlNodePtr node, const char *entity, bool only_chars);
-XMQRenderStyle terminal_render_theme(bool *use_color, bool *bg_dark_mode);
+const char *lookup_render_theme(bool *use_color, bool *bg_dark_mode);
 const char *tokenize_type_to_string(XMQCliTokenizeType type);
 void trace_(const char* fmt, ...);
 void verbose_(const char* fmt, ...);
@@ -414,6 +408,8 @@ const char *error_to_print_on_exit = NULL;
 XMQLineConfig xmq_log_line_config__;
 
 bool log_xmq__ = false;
+
+const char *default_theme_spec_ = NULL;
 
 void error_(const char* fmt, ...)
 {
@@ -686,6 +682,7 @@ XMQCliCommand *allocate_cli_command(XMQCliEnvironment *env)
     if (c->use_color)
     {
         c->render_to = XMQ_RENDER_TERMINAL;
+        c->render_theme_spec = default_theme_spec_;
     }
     else
     {
@@ -924,7 +921,7 @@ bool handle_option(const char *arg, const char *arg_next, XMQCliCommand *command
         }
         if (!strncmp(arg, "--theme=", 8))
         {
-            command->render_theme = arg+8;
+            command->render_theme_spec = arg+8;
             return true;
         }
         if (!strncmp(arg, "--use-cr=", 9))
@@ -1424,40 +1421,39 @@ bool query_xterm_bgcolor()
 
 #endif
 
-XMQRenderStyle terminal_render_theme(bool *use_color, bool *bg_dark_mode)
+const char *lookup_render_theme(bool *use_color, bool *bg_dark_mode)
 {
     const char *term = getenv("TERM");
     if (!term) term = "NULL";
     verbose_("xmq=", "detected terminal %s", term);
 
-    char *xmq_mode = getenv("XMQ_THEME");
-    if (xmq_mode != NULL)
+    char *theme = getenv("XMQ_THEME");
+    if (theme != NULL)
     {
-        if (!strcmp(xmq_mode, "mono"))
+        if (!strcmp(theme, "mono"))
         {
             *use_color = false;
             *bg_dark_mode = false;
             verbose_("xmq=", "XMQ_THEME set to mono");
-            return XMQ_RENDER_MONO;
+            return "mono";
         }
-        if (!strcmp(xmq_mode, "lightbg"))
+        *use_color = true;
+        if (ends_with(theme, NULL, "light"))
         {
-            *use_color = true;
             *bg_dark_mode = false;
-            verbose_("xmq=", "XMQ_THEME set to lightbg");
-            return XMQ_RENDER_COLOR_LIGHTBG;
+            verbose_("xmq=", "Detected light XMQ_THEME");
+            return theme;
         }
-        if (!strcmp(xmq_mode, "darkbg"))
+        else if (ends_with(theme, NULL, "dark"))
         {
-            *use_color = true;
             *bg_dark_mode = true;
-            verbose_("xmq=", "XMQ_THEME set to darkbg");
-            return XMQ_RENDER_COLOR_DARKBG;
+            verbose_("xmq=", "Detected dark XMQ_THEME");
+            return theme;
         }
-        *use_color = false;
-        *bg_dark_mode = false;
-        verbose_("xmq=", "XMQ_THEME content is bad, using mono");
-        return XMQ_RENDER_MONO;
+/*        *use_color = false;
+        *bg_dark_mode = false;*
+        verbose_("xmq=", "XMQ_THEME content is bad, using mono");*/
+        return theme;
     }
 
     if (!strcmp(term, "linux"))
@@ -1466,14 +1462,14 @@ XMQRenderStyle terminal_render_theme(bool *use_color, bool *bg_dark_mode)
         *use_color = true;
         *bg_dark_mode = true;
         verbose_("xmq=", "assuming vt console has dark bg");
-        return XMQ_RENDER_COLOR_DARKBG;
+        return "dark";
     }
 
 #ifdef PLATFORM_WINAPI
     *use_color = true;
     *bg_dark_mode = true;
     verbose_("xmq=", "assuming console has dark background");
-    return XMQ_RENDER_COLOR_DARKBG;
+    return "dark";
 #else
 
     if (!strcmp(term, "xterm-256color") ||
@@ -1484,7 +1480,7 @@ XMQRenderStyle terminal_render_theme(bool *use_color, bool *bg_dark_mode)
             *use_color = true;
             *bg_dark_mode = true;
             verbose_("xmq=", "cannot query xterm assuming console has dark background");
-            return XMQ_RENDER_COLOR_DARKBG;
+            return "dark";
         }
 
         bool is_dark = true;
@@ -1495,12 +1491,12 @@ XMQRenderStyle terminal_render_theme(bool *use_color, bool *bg_dark_mode)
             *use_color = true;
             *bg_dark_mode = true;
             verbose_("xmq=", "terminal responds with dark background");
-            return XMQ_RENDER_COLOR_DARKBG;
+            return "dark";
         }
         *use_color = true;
         *bg_dark_mode = false;
         verbose_("xmq=", "terminal responds with light background");
-        return XMQ_RENDER_COLOR_LIGHTBG;
+        return "light";
     }
 
 #endif
@@ -1519,18 +1515,18 @@ XMQRenderStyle terminal_render_theme(bool *use_color, bool *bg_dark_mode)
 	    *use_color = true;
             *bg_dark_mode = true;
             verbose_("xmq=", "COLORFGBG means dark \"%s\"", colorfgbg);
-            return XMQ_RENDER_COLOR_DARKBG;
+            return "dark";
 	}
 	*use_color = true;
         *bg_dark_mode = false;
         verbose_("xmq=", "COLORFGBG means light \"%s\"", colorfgbg);
-        return XMQ_RENDER_COLOR_LIGHTBG;
+        return "light";
     }
 
     *use_color = true;
     *bg_dark_mode = true;
     verbose_("xmq=", "unknown terminal \"%s\" defaults to colors and dark background", term);
-    return XMQ_RENDER_COLOR_DARKBG;
+    return "dark";
 }
 
 XMQProceed print_tool(XMQDoc *doc, XMQNodePtr node, void *user_data);
@@ -1645,12 +1641,14 @@ bool handle_global_option(const char *arg, XMQCliCommand *command)
         command->print_version = true;
         return true;
     }
-    if (!strcmp(arg, "--render-theme"))
+    if (!strcmp(arg, "--check-bg-dark-light"))
     {
         bool c, dark;
-        int rc = terminal_render_theme(&c, &dark);
+        const char *theme = lookup_render_theme(&c, &dark);
         if (error_to_print_on_exit) fprintf(stderr, "%s", error_to_print_on_exit);
-        exit(rc);
+        if (!strcmp(theme, "mono")) exit(0); // Mono
+        if (!strcmp(theme, "dark")) exit(1); // Dark background
+        exit(2); // Light background
     }
     if (!strcmp(arg, "--xmq"))
     {
@@ -1866,11 +1864,11 @@ void print_license_and_exit()
 {
     puts(
 "  LibXMQ\n"
-"  Copyright (c) 2019-2024 Fredrik Öhrström <oehrstroem@gmail.com>\n"
+"  Copyright (c) 2019-2026 Fredrik Öhrström <oehrstroem@gmail.com>\n"
 "\n"
 "  YAEP (Yet Another Earley Parser)\n"
 "  Copyright(c) 1997-2018  Vladimir Makarov <vmakarov@gcc.gnu.org>\n"
-"  Copyright(c) 2024 Fredrik Öhrström <oehrstroem@gmail.com>\n"
+"  Copyright(c) 2024-2026 Fredrik Öhrström <oehrstroem@gmail.com>\n"
 "\n"
 "  Permission is hereby granted, free of charge, to any person obtaining a copy\n"
 "  of this software and associated documentation files (the \"Software\"), to deal\n"
@@ -1908,7 +1906,7 @@ bool cmd_tokenize(XMQCliCommand *command)
         xmqSetRenderFormat(output_settings, XMQ_RENDER_TERMINAL);
         xmqSetUseColor(output_settings, command->use_color);
         xmqSetBackgroundMode(output_settings, command->bg_dark_mode);
-        xmqSetRenderTheme(output_settings, command->render_theme);
+        xmqSetRenderTheme(output_settings, command->render_theme_spec);
         xmqSetupDefaultColors(output_settings);
         xmqSetupParseCallbacksColorizeTokens(callbacks, XMQ_RENDER_TERMINAL);
         break;
@@ -1916,7 +1914,7 @@ bool cmd_tokenize(XMQCliCommand *command)
         xmqSetRenderFormat(output_settings, XMQ_RENDER_HTML);
         xmqSetUseColor(output_settings, command->use_color);
         xmqSetBackgroundMode(output_settings, command->bg_dark_mode);
-        xmqSetRenderTheme(output_settings, command->render_theme);
+        xmqSetRenderTheme(output_settings, command->render_theme_spec);
         xmqSetupDefaultColors(output_settings);
         xmqSetupParseCallbacksColorizeTokens(callbacks, XMQ_RENDER_HTML);
         break;
@@ -1924,7 +1922,7 @@ bool cmd_tokenize(XMQCliCommand *command)
         xmqSetRenderFormat(output_settings, XMQ_RENDER_TEX);
         xmqSetUseColor(output_settings, command->use_color);
         xmqSetBackgroundMode(output_settings, command->bg_dark_mode);
-        xmqSetRenderTheme(output_settings, command->render_theme);
+        xmqSetRenderTheme(output_settings, command->render_theme_spec);
         xmqSetupDefaultColors(output_settings);
         xmqSetupParseCallbacksColorizeTokens(callbacks, XMQ_RENDER_TEX);
         break;
@@ -2146,7 +2144,7 @@ bool cmd_to(XMQCliCommand *command)
     xmqSetRenderRaw(settings, command->render_raw);
     xmqSetRenderOnlyStyle(settings, command->only_style);
     xmqRenderHtmlSettings(settings, command->use_id, command->use_class);
-    xmqSetRenderTheme(settings, command->render_theme);
+    xmqSetRenderTheme(settings, command->render_theme_spec);
     xmqSetOmitDecl(settings, command->omit_decl);
     xmqSetupDefaultColors(settings);
 
@@ -3116,18 +3114,23 @@ void prepare_command(XMQCliCommand *c, XMQCliCommand *load_command)
     case XMQ_CLI_CMD_RENDER_TERMINAL:
         c->out_format = XMQ_CONTENT_XMQ;
         c->render_to = XMQ_RENDER_TERMINAL;
+        c->render_theme_spec = default_theme_spec_;
+        fprintf(stderr, "GurKA %s\n", c->render_theme_spec);
         return;
     case XMQ_CLI_CMD_RENDER_HTML:
         c->out_format = XMQ_CONTENT_XMQ;
         c->render_to = XMQ_RENDER_HTML;
+        c->render_theme_spec = default_theme_spec_;
         return;
     case XMQ_CLI_CMD_RENDER_TEX:
         c->out_format = XMQ_CONTENT_XMQ;
         c->render_to = XMQ_RENDER_TEX;
+        c->render_theme_spec = default_theme_spec_;
         return;
     case XMQ_CLI_CMD_RENDER_RAW:
         c->out_format = XMQ_CONTENT_UNKNOWN;
         c->render_to = XMQ_RENDER_RAW;
+        c->render_theme_spec = "mono";
         return;
     case XMQ_CLI_CMD_TOKENIZE:
         c->in = load_command->in;
@@ -4569,7 +4572,7 @@ int main(int argc, const char **argv)
     memset(&env, 0, sizeof(env));
 
     // See if we can find from the env variables or the terminal if it is dark mode or not.
-    terminal_render_theme(&env.use_color, &env.bg_dark_mode);
+    default_theme_spec_ = lookup_render_theme(&env.use_color, &env.bg_dark_mode);
 
     // But override coloring if not tty.
     if (isatty(1))

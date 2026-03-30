@@ -83,6 +83,8 @@ bool unicode_get_category_part(const char *part, int **out_cat, size_t *out_cat_
 
 bool category_has_code(int code, int *cat, size_t cat_len);
 
+bool ends_with(const char *start, const char *stop, const char *pattern);
+
 #define TEXT_MODULE
 
 #endif // TEXT_H
