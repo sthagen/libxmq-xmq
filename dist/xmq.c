@@ -8344,11 +8344,17 @@ bool xmqParseBufferWithIXML(XMQDoc *doc, const char *start, const char *stop, XM
     if (run->ambiguous_p)
     {
         xmlNodePtr element = xmlDocGetRootElement(doc->docptr_.xml);
-        xmlNsPtr ns = xmlNewNs(element,
-                               (const xmlChar *)"http://invisiblexml.org/NS",
-                               (const xmlChar *)"ixml");
-
-        xmlSetNsProp(element, ns, (xmlChar*)"state", (xmlChar*)"ambiguous");
+        xmlNsPtr ns = xmlSearchNs(doc->docptr_.xml, element, (const xmlChar *)"ixml");
+        if (ns == NULL)
+        {
+            ns = xmlNewNs(element,
+                          (const xmlChar *)"http://invisiblexml.org/NS",
+                          (const xmlChar *)"ixml");
+        }
+        // This should be set with the namespace ixml, however a memory leak triggers then....
+        // Temporary workaround use xmlSetProp instead.
+        // xmlSetNsProp(element, ns, (xmlChar*)"state", (xmlChar*)"ambiguous");
+        xmlSetProp(element, (xmlChar*)"state", (xmlChar*)"ambiguous");
     }
 
     if (run->root)
