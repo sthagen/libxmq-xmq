@@ -1,4 +1,4 @@
-/* libxmq - Copyright (C) 2024-2025 Fredrik Öhrström (spdx: MIT)
+/* libxmq - Copyright (C) 2024-2026 Fredrik Öhrström (spdx: MIT)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -1892,6 +1892,19 @@ void scan_content_fixup_charsets(XMQParseState *state, const char *start, const 
     }
 
     char *already_used = state->used_unicodes;
+
+    /* If we are parsing using --lines, ie each input line in the file is reparsed using the ixml grammar.
+       Hej aaa!
+       Hej aaa!
+       Hej aab!
+
+       with the ixml grammar:
+       name = -'Hej ', [L]+, '!'.
+
+       then the first line adds "H e j a" to the charset [L].
+       the second line adds nothing more.
+       the third line adds "b" to the charset [L].
+    */
 
     while (i < stop)
     {

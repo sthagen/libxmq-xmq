@@ -1,4 +1,4 @@
-/* libxmq - Copyright (C) 2023-2025 Fredrik Öhrström (spdx: MIT)
+/* libxmq - Copyright (C) 2023-2026 Fredrik Öhrström (spdx: MIT)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -2068,6 +2068,7 @@ bool cmd_load(XMQCliCommand *command, bool *no_more_data)
             exit(1);
         }
         verbose_("xmq=", "cmd-load-ixml %zu bytes from %s", xmqGetOriginalSize(command->env->doc), from);
+        xmlCleanupParser();
     }
     else
     {
@@ -3115,7 +3116,6 @@ void prepare_command(XMQCliCommand *c, XMQCliCommand *load_command)
         c->out_format = XMQ_CONTENT_XMQ;
         c->render_to = XMQ_RENDER_TERMINAL;
         c->render_theme_spec = default_theme_spec_;
-        fprintf(stderr, "GurKA %s\n", c->render_theme_spec);
         return;
     case XMQ_CLI_CMD_RENDER_HTML:
         c->out_format = XMQ_CONTENT_XMQ;

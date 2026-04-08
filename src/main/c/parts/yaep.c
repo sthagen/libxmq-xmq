@@ -2,7 +2,7 @@
    YAEP (Yet Another Earley Parser)
 
    Copyright (c) 1997-2018 Vladimir Makarov <vmakarov@gcc.gnu.org>
-   Copyright (c) 2024-2025 Fredrik Öhrström <oehrstroem@gmail.com>
+   Copyright (c) 2024-2026 Fredrik Öhrström <oehrstroem@gmail.com>
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files(the
@@ -1122,21 +1122,42 @@ YaepGrammar *yaepNewGrammar()
 YaepParseRun *yaepNewParseRun(YaepGrammar *g)
 {
     YaepParseState *ps = (YaepParseState*)calloc(1, sizeof(YaepParseState));
-    INSTALL_PARSE_STATE_MAGIC(ps);
+    PARSE_INIT_MAGIC(ps);
 
     ps->run.grammar = g;
 
     return (YaepParseRun*)ps;
 }
 
-void yaepFreeParseRun(YaepParseRun *pr)
+void yaepResetParseRun(YaepParseRun *pr)
 {
     YaepParseState *ps = (YaepParseState*)pr;
+    PARSE_INIT_MAGIC(ps);
+
     if (ps->run.failure)
     {
         xmqFreeDoc(ps->run.failure);
+        ps->run.failure = NULL;
     }
-    assert(CHECK_PARSE_STATE_MAGIC(ps));
+    ps->run.failed_p = false;
+    ps->run.ambiguous_p = false;
+}
+
+void yaepFreeParseRun(YaepParseRun *pr)
+{
+    YaepParseState *ps = (YaepParseState*)pr;
+
+    assert(CAN_FREE_STATE_MAGIC(ps));
+    PARSE_FREE_MAGIC(ps);
+
+    if (ps->run.failure)
+    {
+        xmqFreeDoc(ps->run.failure);
+        ps->run.failure = NULL;
+        ps->run.failed_p = false;
+    }
+    ps->run.ambiguous_p = false;
+
     free(ps);
 }
 
@@ -1459,7 +1480,6 @@ int yaep_read_grammar(YaepParseRun *pr,
 
     assert(g != NULL);
     YaepParseState *ps = (YaepParseState*)pr;
-    assert(CHECK_PARSE_STATE_MAGIC(ps));
 
     if ((code = setjmp(ps->error_longjump_buff)) != 0)
     {
@@ -2901,7 +2921,8 @@ int yaepParse(YaepParseRun *pr, YaepGrammar *g)
 {
     YaepParseState *ps = (YaepParseState*)pr;
 
-    assert(CHECK_PARSE_STATE_MAGIC(ps));
+    assert(CAN_PARSE_STATE_MAGIC(ps));
+    PARSE_START_MAGIC(ps);
 
     ps->run.grammar = g;
     YaepTreeNode **root = &ps->run.root;
@@ -2974,6 +2995,9 @@ int yaepParse(YaepParseRun *pr, YaepGrammar *g)
     free_inside_parse_state(ps);
     free_input(ps);
     verbose("ixml=", "done parse");
+
+    PARSE_STOP_MAGIC(ps);
+
     return pr->failed_p;
 }
 
@@ -2981,7 +3005,6 @@ int yaepParse(YaepParseRun *pr, YaepGrammar *g)
 void yaepFreeGrammar(YaepParseRun *pr, YaepGrammar *g)
 {
     YaepParseState *ps = (YaepParseState*)pr;
-    assert(CHECK_PARSE_STATE_MAGIC(ps));
 
     YaepAllocator *allocator;
 

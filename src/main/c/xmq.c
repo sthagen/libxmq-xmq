@@ -4405,7 +4405,8 @@ bool xmq_parse_buffer_ixml(XMQDoc *ixml_grammar,
         ixml_grammar->error_ = build_error_message("%s\n", xmqStateErrorMsg(state));
     }
 
-    // Do not free the state, it must be kept alive with the doc
+    // Do not free the xmq state, the yaep run nor the state,
+    // it must be kept alive with the doc
     xmqFreeParseCallbacks(parse);
     xmqFreeOutputSettings(os);
 
@@ -4661,6 +4662,7 @@ void generate_dom_from_yaep_node(xmlDocPtr doc, xmlNodePtr node, YaepTreeNode *n
         if (node == NULL)
         {
             new_node = xmlNewDocNode(doc, NULL, (xmlChar*)"AMBIGUOUS", NULL);
+            assert(xmlDocGetRootElement(doc) == NULL);
             xmlDocSetRootElement(doc, new_node);
         }
         else
@@ -4778,6 +4780,9 @@ bool xmqParseBufferWithIXML(XMQDoc *doc, const char *start, const char *stop, XM
     }
 
     YaepParseRun *run = xmq_get_yaep_parse_run(ixml_grammar);
+    // If we are compiling again with the same grammar.
+    yaepResetParseRun(run);
+
     run->buffer_start = start;
     run->buffer_stop = stop;
     run->buffer_i = start;
@@ -4804,14 +4809,24 @@ bool xmqParseBufferWithIXML(XMQDoc *doc, const char *start, const char *stop, XM
     if (run->ambiguous_p)
     {
         xmlNodePtr element = xmlDocGetRootElement(doc->docptr_.xml);
-        xmlNsPtr ns = xmlNewNs(element,
-                               (const xmlChar *)"http://invisiblexml.org/NS",
-                               (const xmlChar *)"ixml");
-
-        xmlSetNsProp(element, ns, (xmlChar*)"state", (xmlChar*)"ambiguous");
+        xmlNsPtr ns = xmlSearchNs(doc->docptr_.xml, element, (const xmlChar *)"ixml");
+        if (ns == NULL)
+        {
+            ns = xmlNewNs(element,
+                          (const xmlChar *)"http://invisiblexml.org/NS",
+                          (const xmlChar *)"ixml");
+        }
+        // This should be set with the namespace ixml, however a memory leak triggers then....
+        // Temporary workaround use xmlSetProp instead.
+        // xmlSetNsProp(element, ns, (xmlChar*)"state", (xmlChar*)"ambiguous");
+        xmlSetProp(element, (xmlChar*)"state", (xmlChar*)"ambiguous");
     }
 
-    if (run->root) yaepFreeTree(run->root, NULL, NULL);
+    if (run->root)
+    {
+        yaepFreeTree(run->root, NULL, NULL);
+        run->root = NULL;
+    }
 
     return true;
 }

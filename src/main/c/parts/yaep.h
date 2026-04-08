@@ -234,6 +234,9 @@ extern YaepGrammar *yaepNewGrammar();
    parse progress/state. */
 extern YaepParseRun *yaepNewParseRun(YaepGrammar *g);
 
+/* Reset the parse run for a new parse using yaep/ixml. */
+extern void yaepResetParseRun(YaepParseRun *pr);
+
 /* Set a pointer to a user structure that is available when callbacks are invoked,
    such as read_token when parsing. */
 extern void yaepSetUserData(YaepGrammar *g, void *data);

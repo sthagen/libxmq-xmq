@@ -2,7 +2,7 @@
    YAEP (Yet Another Earley Parser)
 
    Copyright (c) 1997-2018 Vladimir Makarov <vmakarov@gcc.gnu.org>
-   Copyright (c) 2024-2025 Fredrik Öhrström <oehrstroem@gmail.com>
+   Copyright (c) 2024-2026 Fredrik Öhrström <oehrstroem@gmail.com>
 
    Permission is hereby granted, free of charge, to any person obtaining a
    copy of this software and associated documentation files (the
@@ -612,7 +612,9 @@ struct YaepRecoveryState
 struct YaepParseState
 {
     YaepParseRun run;
-    int magic_cookie; // Must be set to 736268273 when the state is created.
+
+    /* Track state of this object. */
+    int magic_cookie;
 
     /* The input token array to be parsed. */
     YaepInputToken *input;
@@ -839,8 +841,14 @@ struct YaepParseState
 };
 typedef struct YaepParseState YaepParseState;
 
-#define CHECK_PARSE_STATE_MAGIC(ps) (ps->magic_cookie == 736268273)
-#define INSTALL_PARSE_STATE_MAGIC(ps) ps->magic_cookie=736268273
+#define PARSE_INIT_MAGIC(ps) ps->magic_cookie=0x11223344
+#define CAN_PARSE_STATE_MAGIC(ps) (ps->magic_cookie == 0x11223344)
+#define PARSE_START_MAGIC(ps) ps->magic_cookie=0x55555555
+#define PARSE_STOP_MAGIC(ps) ps->magic_cookie=0x66666666
+#define CAN_FREE_STATE_MAGIC(ps) (ps->magic_cookie == 0x11223344 || \
+                                  ps->magic_cookie == 0x55555555 ||     \
+                                  ps->magic_cookie == 0x66666666)
+#define PARSE_FREE_MAGIC(ps) ps->magic_cookie=0xdeadbeef
 
 struct StateVars;
 typedef struct StateVars StateVars;

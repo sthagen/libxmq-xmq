@@ -1794,6 +1794,9 @@ extern YaepGrammar *yaepNewGrammar();
    parse progress/state. */
 extern YaepParseRun *yaepNewParseRun(YaepGrammar *g);
 
+/* Reset the parse run for a new parse using yaep/ixml. */
+extern void yaepResetParseRun(YaepParseRun *pr);
+
 /* Set a pointer to a user structure that is available when callbacks are invoked,
    such as read_token when parsing. */
 extern void yaepSetUserData(YaepGrammar *g, void *data);
@@ -2530,7 +2533,9 @@ struct YaepRecoveryState
 struct YaepParseState
 {
     YaepParseRun run;
-    int magic_cookie; // Must be set to 736268273 when the state is created.
+
+    /* Track state of this object. */
+    int magic_cookie;
 
     /* The input token array to be parsed. */
     YaepInputToken *input;
@@ -2757,8 +2762,14 @@ struct YaepParseState
 };
 typedef struct YaepParseState YaepParseState;
 
-#define CHECK_PARSE_STATE_MAGIC(ps) (ps->magic_cookie == 736268273)
-#define INSTALL_PARSE_STATE_MAGIC(ps) ps->magic_cookie=736268273
+#define PARSE_INIT_MAGIC(ps) ps->magic_cookie=0x11223344
+#define CAN_PARSE_STATE_MAGIC(ps) (ps->magic_cookie == 0x11223344)
+#define PARSE_START_MAGIC(ps) ps->magic_cookie=0x55555555
+#define PARSE_STOP_MAGIC(ps) ps->magic_cookie=0x66666666
+#define CAN_FREE_STATE_MAGIC(ps) (ps->magic_cookie == 0x11223344 || \
+                                  ps->magic_cookie == 0x55555555 ||     \
+                                  ps->magic_cookie == 0x66666666)
+#define PARSE_FREE_MAGIC(ps) ps->magic_cookie=0xdeadbeef
 
 struct StateVars;
 typedef struct StateVars StateVars;
@@ -7929,7 +7940,8 @@ bool xmq_parse_buffer_ixml(XMQDoc *ixml_grammar,
         ixml_grammar->error_ = build_error_message("%s\n", xmqStateErrorMsg(state));
     }
 
-    // Do not free the state, it must be kept alive with the doc
+    // Do not free the xmq state, the yaep run nor the state,
+    // it must be kept alive with the doc
     xmqFreeParseCallbacks(parse);
     xmqFreeOutputSettings(os);
 
@@ -8185,6 +8197,7 @@ void generate_dom_from_yaep_node(xmlDocPtr doc, xmlNodePtr node, YaepTreeNode *n
         if (node == NULL)
         {
             new_node = xmlNewDocNode(doc, NULL, (xmlChar*)"AMBIGUOUS", NULL);
+            assert(xmlDocGetRootElement(doc) == NULL);
             xmlDocSetRootElement(doc, new_node);
         }
         else
@@ -8302,6 +8315,9 @@ bool xmqParseBufferWithIXML(XMQDoc *doc, const char *start, const char *stop, XM
     }
 
     YaepParseRun *run = xmq_get_yaep_parse_run(ixml_grammar);
+    // If we are compiling again with the same grammar.
+    yaepResetParseRun(run);
+
     run->buffer_start = start;
     run->buffer_stop = stop;
     run->buffer_i = start;
@@ -8335,7 +8351,11 @@ bool xmqParseBufferWithIXML(XMQDoc *doc, const char *start, const char *stop, XM
         xmlSetNsProp(element, ns, (xmlChar*)"state", (xmlChar*)"ambiguous");
     }
 
-    if (run->root) yaepFreeTree(run->root, NULL, NULL);
+    if (run->root)
+    {
+        yaepFreeTree(run->root, NULL, NULL);
+        run->root = NULL;
+    }
 
     return true;
 }
@@ -11938,6 +11958,19 @@ void scan_content_fixup_charsets(XMQParseState *state, const char *start, const 
     }
 
     char *already_used = state->used_unicodes;
+
+    /* If we are parsing using --lines, ie each input line in the file is reparsed using the ixml grammar.
+       Hej aaa!
+       Hej aaa!
+       Hej aab!
+
+       with the ixml grammar:
+       name = -'Hej ', [L]+, '!'.
+
+       then the first line adds "H e j a" to the charset [L].
+       the second line adds nothing more.
+       the third line adds "b" to the charset [L].
+    */
 
     while (i < stop)
     {
@@ -23358,21 +23391,42 @@ YaepGrammar *yaepNewGrammar()
 YaepParseRun *yaepNewParseRun(YaepGrammar *g)
 {
     YaepParseState *ps = (YaepParseState*)calloc(1, sizeof(YaepParseState));
-    INSTALL_PARSE_STATE_MAGIC(ps);
+    PARSE_INIT_MAGIC(ps);
 
     ps->run.grammar = g;
 
     return (YaepParseRun*)ps;
 }
 
-void yaepFreeParseRun(YaepParseRun *pr)
+void yaepResetParseRun(YaepParseRun *pr)
 {
     YaepParseState *ps = (YaepParseState*)pr;
+    PARSE_INIT_MAGIC(ps);
+
     if (ps->run.failure)
     {
         xmqFreeDoc(ps->run.failure);
+        ps->run.failure = NULL;
     }
-    assert(CHECK_PARSE_STATE_MAGIC(ps));
+    ps->run.failed_p = false;
+    ps->run.ambiguous_p = false;
+}
+
+void yaepFreeParseRun(YaepParseRun *pr)
+{
+    YaepParseState *ps = (YaepParseState*)pr;
+
+    assert(CAN_FREE_STATE_MAGIC(ps));
+    PARSE_FREE_MAGIC(ps);
+
+    if (ps->run.failure)
+    {
+        xmqFreeDoc(ps->run.failure);
+        ps->run.failure = NULL;
+        ps->run.failed_p = false;
+    }
+    ps->run.ambiguous_p = false;
+
     free(ps);
 }
 
@@ -23695,7 +23749,6 @@ int yaep_read_grammar(YaepParseRun *pr,
 
     assert(g != NULL);
     YaepParseState *ps = (YaepParseState*)pr;
-    assert(CHECK_PARSE_STATE_MAGIC(ps));
 
     if ((code = setjmp(ps->error_longjump_buff)) != 0)
     {
@@ -25137,7 +25190,8 @@ int yaepParse(YaepParseRun *pr, YaepGrammar *g)
 {
     YaepParseState *ps = (YaepParseState*)pr;
 
-    assert(CHECK_PARSE_STATE_MAGIC(ps));
+    assert(CAN_PARSE_STATE_MAGIC(ps));
+    PARSE_START_MAGIC(ps);
 
     ps->run.grammar = g;
     YaepTreeNode **root = &ps->run.root;
@@ -25210,6 +25264,9 @@ int yaepParse(YaepParseRun *pr, YaepGrammar *g)
     free_inside_parse_state(ps);
     free_input(ps);
     verbose("ixml=", "done parse");
+
+    PARSE_STOP_MAGIC(ps);
+
     return pr->failed_p;
 }
 
@@ -25217,7 +25274,6 @@ int yaepParse(YaepParseRun *pr, YaepGrammar *g)
 void yaepFreeGrammar(YaepParseRun *pr, YaepGrammar *g)
 {
     YaepParseState *ps = (YaepParseState*)pr;
-    assert(CHECK_PARSE_STATE_MAGIC(ps));
 
     YaepAllocator *allocator;
 
