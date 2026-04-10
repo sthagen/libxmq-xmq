@@ -282,15 +282,20 @@ typedef struct XMQTheme XMQTheme;
 
 /**
    A theme_spec looks like this:
-   export XMQ_THEME=C=#ffffff:Q=#ff0000:E=#ff0000
+
+   export XMQ_COLORS=C=#ffffff:Q=#ff0000:E=#ff0000
    This will override the colors for the comments, quotes and entities, for both dark and light modes.
 
-   export XMQ_THEME=dark+C=#ff0000_U:AKV=#00ff00_B,light+E=#000000
+   You can also specify --colors=C=#ffffff:Q=#ff0000:E=#ff0000
+
+   export XMQ_COLORS=dark+C=#ff0000_U:AKV=#00ff00_B,light+E=#000000
    This will make different overrides for dark and light modes.
 
-   export XMQ_THEME_moo=dark+C=ffff00:AKV=001122_B,light+E=112233
+   export XMQ_COLORS_moo=dark+C=ffff00:AKV=001122_B,light+E=112233
    You can now specify --theme=moo and depending on the background moo-dark or moo-light will be used.
-   You can force --theme=moo-light to use the light settings of moo and likewise for moo-dark.
+
+   Normally xmq detects wether the background is dark or light.
+   But you can force this with --bg=light or --bg=dark or XMQ_BG=light or XMG_BG=dark
 
    There are the available colors:
    C comment

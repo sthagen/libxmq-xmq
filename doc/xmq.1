@@ -168,9 +168,9 @@ Save the generated output from any of the to/render/tokenize commands to the pro
 This command will render the content as xmq/htmq for presentation at a terminal, as html or as LaTeX.
 
 .br
-\fB--color / --mono\fP By default, xmq generates syntax colored output if writing to a terminal.
-You can force it to produce color even if writing to a pipe or a file using --color, and disable color with --mono.
-Colors can be configured with the XMQ_THEME environment variable.
+\fB--bg=light / --bg=dark / --bg=mono\fP Normally xmq detects if the terminal has a light or dark background
+and selects suitable colors. However if you are sending the output to a file or a pipe for later display, then
+the background cannot be detected. Force the desired setting here or force mono to use no colors at all.
 
 .br
 \fB--id=abc\fP When rendering html mark the pre tag with this id.
@@ -178,6 +178,45 @@ Colors can be configured with the XMQ_THEME environment variable.
 .br
 \fB--theme=light / --theme=dark\fP Force a colorscheme suitable for a light background or a dark background. Useful if terminal background color detection does not work. You can also export these as XMQ_THEME=light and XMQ_THEME=dark.
 
+You can override a single color for both dark and light modes with:
+export XMQ_THEME=C=#ff0000 which will force RGB ff0000 (aka red) for comments.
+
+You can make the override dark/light sensitive with: export XMQ_THEME=dark+C=#ff0000,light+C=#880000
+
+You can make override more than one color: export XMQ_THEME=dark+C=#ff0000_B:Q=#00ffff_U:EKV=#112233_U_B,light+C=#880000
+
+There are 15 color settings when rendering xmq that can be modified.
+.br
+C comments
+.br
+Q quotes
+.br
+E entitites
+.br
+NS name spaces
+.br
+EN element names (not keys)
+.br
+EK element keys (not names)
+.br
+EKV element key values
+.br
+AK attribute keys
+.br
+AKV attribute key values
+.br
+CP composite parentheses
+.br
+NSD name space declaration
+.br
+UW unicode whitespace (not normal spaces, instead unbreakable space etc)
+.br
+XSL the name space with the label xsl (improve readability of xsl transforms)
+.br
+FG foreground color (white on dark background, black on light backgrounds)
+.br
+BG background color (usually the terminals own color, but can be changed for html)
+.br
 .br
 \fB--nostyle\fP Do not output html/tex preamble/postamble.
 

@@ -192,7 +192,7 @@ struct XMQCliCommand
     const char *render_theme_spec; // Specify the theme from the cli --theme=... or XMQ_THEME=
     int  flags;
     bool use_color; // Uses color or not for terminal/html/tex
-    bool bg_dark_mode; // Terminal has dark background.
+    bool bg_dark_mode; // Terminal has dark background. Specify with XMQ_BG=light or XMQ_BG=dark or --bg=light --bg=dark
     const char *use_id; // When rendering html mark the pre tag with this id.
     const char *use_class; // When rendering html mark the pre tag with this class.
     bool add_nl; // Add newline at end of quote/unquote printing.
@@ -394,7 +394,8 @@ void restoreStdinTerminal();
 bool shell_safe(char *i);
 const char *skip_ansi_backwards(const char *i, const char *start);
 void substitute_entity(xmlDoc *doc, xmlNodePtr node, const char *entity, bool only_chars);
-const char *lookup_render_theme(bool *use_color, bool *bg_dark_mode);
+void lookup_bg(bool *use_color, bool *bg_dark_mode);
+const char *lookup_theme_spec();
 const char *tokenize_type_to_string(XMQCliTokenizeType type);
 void trace_(const char* fmt, ...);
 void verbose_(const char* fmt, ...);
@@ -890,23 +891,9 @@ bool handle_option(const char *arg, const char *arg_next, XMQCliCommand *command
             command->use_class = arg+8;
             return true;
         }
-        if (!strcmp(arg, "--color"))
-        {
-            command->use_color = true;
-            if (command->render_to == XMQ_RENDER_PLAIN)
-            {
-                command->render_to = XMQ_RENDER_TERMINAL;
-            }
-            return true;
-        }
         if (!strncmp(arg, "--id=", 5))
         {
             command->use_id = arg+5;
-            return true;
-        }
-        if (!strcmp(arg, "--mono"))
-        {
-            command->use_color = false;
             return true;
         }
         if (!strcmp(arg, "--nostyle"))
@@ -922,6 +909,31 @@ bool handle_option(const char *arg, const char *arg_next, XMQCliCommand *command
         if (!strncmp(arg, "--theme=", 8))
         {
             command->render_theme_spec = arg+8;
+            return true;
+        }
+        if (!strncmp(arg, "--bg=", 5))
+        {
+            const char *bg = arg+5;
+            if (!strcmp(bg, "light"))
+            {
+                command->use_color = true;
+                command->bg_dark_mode = false;
+            }
+            else if (!strcmp(bg, "dark"))
+            {
+                command->use_color = true;
+                command->bg_dark_mode = true;
+            }
+            else if (!strcmp(bg, "mono"))
+            {
+                command->use_color = false;
+                command->bg_dark_mode = false;
+            }
+            else
+            {
+                printf("xmq: unknown bg setting \"%s\"\n", bg);
+                exit(1);
+            }
             return true;
         }
         if (!strncmp(arg, "--use-cr=", 9))
@@ -1334,7 +1346,7 @@ static void sig_alarm_handler(int signo)
 {
     fprintf(stderr,
             "xmq: no response from xterm/xterm-256color terminal whether background is dark/light.\n"
-            "To skip this failed test please set environment variable XMQ_THEME=mono|darkbg|lightbg.\n");
+            "To skip this failed test please set environment variable XMQ_BG=mono|dark|light.\n");
     exit(1);
 }
 
@@ -1421,39 +1433,39 @@ bool query_xterm_bgcolor()
 
 #endif
 
-const char *lookup_render_theme(bool *use_color, bool *bg_dark_mode)
+void lookup_bg(bool *use_color, bool *bg_dark_mode)
 {
     const char *term = getenv("TERM");
     if (!term) term = "NULL";
     verbose_("xmq=", "detected terminal %s", term);
 
-    char *theme = getenv("XMQ_THEME");
-    if (theme != NULL)
+    char *bg = getenv("XMQ_BG");
+    if (bg != NULL)
     {
-        if (!strcmp(theme, "mono"))
+        if (!strcmp(bg, "mono"))
         {
             *use_color = false;
             *bg_dark_mode = false;
-            verbose_("xmq=", "XMQ_THEME set to mono");
-            return "mono";
+            verbose_("xmq=", "XMQ_BG set to mono");
+            return;
         }
         *use_color = true;
-        if (ends_with(theme, NULL, "light"))
+        if (!strcmp(bg, "light"))
         {
             *bg_dark_mode = false;
-            verbose_("xmq=", "Detected light XMQ_THEME");
-            return theme;
+            verbose_("xmq=", "XMQ_BG set to light");
+            return;
         }
-        else if (ends_with(theme, NULL, "dark"))
+        if (!strcmp(bg, "dark"))
         {
             *bg_dark_mode = true;
-            verbose_("xmq=", "Detected dark XMQ_THEME");
-            return theme;
+            verbose_("xmq=", "XMQ_BG set to dark");
+            return;
         }
-/*        *use_color = false;
-        *bg_dark_mode = false;*
-        verbose_("xmq=", "XMQ_THEME content is bad, using mono");*/
-        return theme;
+        *use_color = false;
+        *bg_dark_mode = false;
+        verbose_("xmq=", "XMQ_BG content is bad, using mono");
+        return;
     }
 
     if (!strcmp(term, "linux"))
@@ -1462,14 +1474,14 @@ const char *lookup_render_theme(bool *use_color, bool *bg_dark_mode)
         *use_color = true;
         *bg_dark_mode = true;
         verbose_("xmq=", "assuming vt console has dark bg");
-        return "dark";
+        return;
     }
 
 #ifdef PLATFORM_WINAPI
     *use_color = true;
     *bg_dark_mode = true;
     verbose_("xmq=", "assuming console has dark background");
-    return "dark";
+    return;
 #else
 
     if (!strcmp(term, "xterm-256color") ||
@@ -1480,7 +1492,7 @@ const char *lookup_render_theme(bool *use_color, bool *bg_dark_mode)
             *use_color = true;
             *bg_dark_mode = true;
             verbose_("xmq=", "cannot query xterm assuming console has dark background");
-            return "dark";
+            return;
         }
 
         bool is_dark = true;
@@ -1491,12 +1503,12 @@ const char *lookup_render_theme(bool *use_color, bool *bg_dark_mode)
             *use_color = true;
             *bg_dark_mode = true;
             verbose_("xmq=", "terminal responds with dark background");
-            return "dark";
+            return;
         }
         *use_color = true;
         *bg_dark_mode = false;
         verbose_("xmq=", "terminal responds with light background");
-        return "light";
+        return;
     }
 
 #endif
@@ -1515,18 +1527,24 @@ const char *lookup_render_theme(bool *use_color, bool *bg_dark_mode)
 	    *use_color = true;
             *bg_dark_mode = true;
             verbose_("xmq=", "COLORFGBG means dark \"%s\"", colorfgbg);
-            return "dark";
+            return;
 	}
 	*use_color = true;
         *bg_dark_mode = false;
         verbose_("xmq=", "COLORFGBG means light \"%s\"", colorfgbg);
-        return "light";
+        return;
     }
 
     *use_color = true;
     *bg_dark_mode = true;
     verbose_("xmq=", "unknown terminal \"%s\" defaults to colors and dark background", term);
-    return "dark";
+    return;
+}
+
+
+const char *lookup_theme_spec()
+{
+    return getenv("XMQ_THEME");
 }
 
 XMQProceed print_tool(XMQDoc *doc, XMQNodePtr node, void *user_data);
@@ -1643,11 +1661,11 @@ bool handle_global_option(const char *arg, XMQCliCommand *command)
     }
     if (!strcmp(arg, "--check-bg-dark-light"))
     {
-        bool c, dark;
-        const char *theme = lookup_render_theme(&c, &dark);
+        bool color, dark;
+        lookup_bg(&color, &dark);
         if (error_to_print_on_exit) fprintf(stderr, "%s", error_to_print_on_exit);
-        if (!strcmp(theme, "mono")) exit(0); // Mono
-        if (!strcmp(theme, "dark")) exit(1); // Dark background
+        if (!color) exit(0); // Mono
+        if (dark) exit(1); // Dark background
         exit(2); // Light background
     }
     if (!strcmp(arg, "--xmq"))
@@ -4571,8 +4589,11 @@ int main(int argc, const char **argv)
     XMQCliEnvironment env;
     memset(&env, 0, sizeof(env));
 
-    // See if we can find from the env variables or the terminal if it is dark mode or not.
-    default_theme_spec_ = lookup_render_theme(&env.use_color, &env.bg_dark_mode);
+    // Check if can find the best background setting for this terminal. mono/dark/light
+    lookup_bg(&env.use_color, &env.bg_dark_mode);
+
+    // See if we can find the theme spec to use.
+    default_theme_spec_ = lookup_theme_spec();
 
     // But override coloring if not tty.
     if (isatty(1))

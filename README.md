@@ -88,8 +88,8 @@ xmq page.html select //a/@href
 
 # Replace entities with strings you can also --with-text-file=abc
 # which inserts the content safely quoted, or as DOM --with-file=abc.xml
-# where the file has be parseable.
-xmq template.htmq replace-entity DATE 2024-01-11 replace-entity NAME 'Hercules' render-html --theme=lightbg > page.html
+# where the file has be parseable. Force the generated html to have a light background.
+xmq template.htmq replace-entity DATE 2024-01-11 replace-entity NAME 'Hercules' render-html --bg=light > page.html
 
 # Apply an xslq transform to some json to generate a html page.
 xmq todos.json transform todos.xslq to-html > list.html
@@ -211,13 +211,12 @@ cars {
 Xmq tries to detect the background color of the terminal. This is used
 to select different color palettes in light and dark modes.
 
-Even if you are running within a dark terminal you can force a light coloring with `export XMQ_THEME=light`
+Even if you are running within a dark terminal you can force a light coloring with `XMQ_BG=light`
 and vice versa. This is usefule when spawning a browser and you want a different mode in the browser.
-For example: `export XMQ_THEME=light xmq info.xml br`
+For example: `XMQ_BG=light xmq info.xml br`
 
-A more complex way to set the theme is: `xmq info.xml render-html --theme=light br`
+You can also modify the individual colors with XMQ_THEME. There are 15 colors that can be changed.
 
-There are 15 color settings when rendering xmq that can be modified.
 ```
 C comments
 Q quotes
@@ -236,14 +235,17 @@ FG foreground color (white on dark background, black on light backgrounds)
 BG background color (usually the terminals own color, but can be changed for html)
 ```
 
-You can override a single color for both dark and light modes with:
-`export XMQ_THEME=C=#ff0000` which will force RGB ff0000 (aka red) for comments.
+To change the comment color to red underline bold for both dark and light backgrounds:
 
-You can make the override dark/light sensitive with: `export XMQ_THEME=dark+C=#ff0000,light+C=#880000`
+`export XMQ_THEME=C=#ff0000_U_B`
 
-You can make override more than one color: `export XMQ_THEME=C=#ff0000_B:Q=#00ffff_U:EKV=#112233_U_B`
-where the comments are also bold, the quotes are underlined and the element key values are both
-underlined and bold, in addition to their new colors.
+To make the change sensitive to dark/light backgrounds:
+
+`export XMQ_THEME=dark+C=#ff0000_U_B,light+C=#880000_U_B`
+
+You can make override more than one color for both light and dark.
+
+`export XMQ_COLORS=dark+C=#ff0000_B:Q=#00ffff_U:EKV=#112233_U_B,light+C=#880000`
 
 ## Using xmq.h and xmq.c in your program
 
