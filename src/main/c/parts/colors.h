@@ -84,8 +84,12 @@ typedef enum XMQColor {
     X(NSD) \
     X(UW) \
     X(XLS) \
+    X(FG) \
+    X(BG) \
 
-#define NUM_XMQ_COLOR_NAMES 13
+#define NUM_XMQ_COLOR_NAMES 15
+#define XMQ_COLOR_FG_INDEX 13
+#define XMQ_COLOR_BG_INDEX 14
 
 const char* colorName(int i);
 int colorShortNameToIndex(const char *name);
@@ -174,6 +178,11 @@ struct XMQTheme
     // RGB Sources + bold + underline from which we can configure the strings.
     XMQColorDef colors_darkbg[NUM_XMQ_COLOR_NAMES];
     XMQColorDef colors_lightbg[NUM_XMQ_COLOR_NAMES];
+
+    bool fg_specified;
+    XMQColorDef fg;
+    bool bg_specified;
+    XMQColorDef bg;
 };
 typedef struct XMQTheme XMQTheme;
 

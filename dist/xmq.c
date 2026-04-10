@@ -153,8 +153,12 @@ typedef enum XMQColor {
     X(NSD) \
     X(UW) \
     X(XLS) \
+    X(FG) \
+    X(BG) \
 
-#define NUM_XMQ_COLOR_NAMES 13
+#define NUM_XMQ_COLOR_NAMES 15
+#define XMQ_COLOR_FG_INDEX 13
+#define XMQ_COLOR_BG_INDEX 14
 
 const char* colorName(int i);
 int colorShortNameToIndex(const char *name);
@@ -243,6 +247,11 @@ struct XMQTheme
     // RGB Sources + bold + underline from which we can configure the strings.
     XMQColorDef colors_darkbg[NUM_XMQ_COLOR_NAMES];
     XMQColorDef colors_lightbg[NUM_XMQ_COLOR_NAMES];
+
+    bool fg_specified;
+    XMQColorDef fg;
+    bool bg_specified;
+    XMQColorDef bg;
 };
 typedef struct XMQTheme XMQTheme;
 
@@ -3890,11 +3899,62 @@ void setup_html_coloring(XMQOutputSettings *os, XMQTheme *theme, bool dark_mode,
         MemBuffer *style_pre = new_membuffer();
 
         membuffer_append(style_pre,
-
                          "@media screen and (orientation: portrait) { pre { font-size: 2vw; } }"
-                         "@media screen and (orientation: landscape) { pre { max-width: 98%; } }"
-                         "pre.xmq_dark {white-space:pre-wrap;word-break:break-all;border-radius:2px;background-color:#263338;border:solid 1px #555555;display:inline-block;padding:1em;color:white;}\n"
-                         "pre.xmq_light{white-space:pre-wrap;word-break:break-all;border-radius:2px;background-color:#ffffcc;border:solid 1px #888888;display:inline-block;padding:1em;color:black;}\n"
+                         "@media screen and (orientation: landscape) { pre { max-width: 98%; } }");
+
+        // Setup CSS for dark mode
+        membuffer_append(style_pre, "pre.xmq_dark {white-space:pre-wrap;word-break:break-all;border-radius:2px;background-color:#");
+
+        // Lookup the bg color in dark....
+        XMQColorDef *def = &theme->colors_darkbg[XMQ_COLOR_BG_INDEX];
+        if (def->r == -1) membuffer_append(style_pre, "263338"); // No override, use default.
+        else
+        {
+            // BG override in dark mode use it.
+            char buf[7];
+            snprintf(buf, 7, "%02x%02x%02x", def->r, def->g, def->b);
+            membuffer_append(style_pre, buf);
+        }
+        membuffer_append(style_pre,    ";border:solid 1px #555555;display:inline-block;padding:1em;color:#");
+
+        // Lookup the fg color in dark....
+        def = &theme->colors_darkbg[XMQ_COLOR_FG_INDEX];
+        if (def->r == -1) membuffer_append(style_pre, "ffffff");
+        else
+        {
+            char buf[7];
+            snprintf(buf, 7, "%02x%02x%02x", def->r, def->g, def->b);
+            membuffer_append(style_pre, buf);
+        }
+        membuffer_append(style_pre,";}\n");
+
+        // Setup CSS for light mode
+        membuffer_append(style_pre, "pre.xmq_light{white-space:pre-wrap;word-break:break-all;border-radius:2px;background-color:#");
+
+        // Lookup the bg color in light....
+        def = &theme->colors_darkbg[XMQ_COLOR_BG_INDEX];
+        if (def->r == -1) membuffer_append(style_pre, "#ffffcc"); // No override, use default.
+        else
+        {
+            // BG override in dark mode use it.
+            char buf[7];
+            snprintf(buf, 7, "%02x%02x%02x", def->r, def->g, def->b);
+            membuffer_append(style_pre, buf);
+        }
+        membuffer_append(style_pre, ";border:solid 1px #888888;display:inline-block;padding:1em;color:#");
+
+        // Lookup the fg color in dark....
+        def = &theme->colors_darkbg[XMQ_COLOR_FG_INDEX];
+        if (def->r == -1) membuffer_append(style_pre, "000000");
+        else
+        {
+            char buf[7];
+            snprintf(buf, 7, "%02x%02x%02x", def->r, def->g, def->b);
+            membuffer_append(style_pre, buf);
+        }
+        membuffer_append(style_pre,";}\n");
+
+        membuffer_append(style_pre,
                          "body.xmq_dark {background-color:black;}\n"
                          "body.xmq_light {}\n");
 
@@ -8940,11 +9000,16 @@ bool string_to_color_def(const char *s, XMQColorDef *def)
     // #aabbcc_U
     // #aabbcc_B_U
 
+    // "" the empty string translates into def with -1 -1 -1 as rgb values.
+    // used to identify
+
     def->r = -1;
     def->g = -1;
     def->b = -1;
     def->bold = false;
     def->underline = false;
+
+    if (s[0] == 0) return true;
 
     int r, g, b;
     bool bold, underline;
@@ -9090,7 +9155,7 @@ bool generate_tex_color(char *buf, size_t buf_size, XMQColorDef *def, const char
     return true;
 }
 
-const char *color_names[13] = {
+const char *color_names[15] = {
     "xmqC", // Comment
     "xmqQ", // Quote
     "xmqE", // Entity
@@ -9104,6 +9169,8 @@ const char *color_names[13] = {
     "xmqNSD", // Name Space declaration xmlns
     "xmqUW", // Unicode whitespace
     "xmqXSL", // Element color for xsl transform elements.
+    "xmqFG", // Foreground color
+    "xmqBG", // Background color
 };
 
 const char* colorName(int i)
@@ -9126,6 +9193,8 @@ int colorShortNameToIndex(const char *name)
     if (!strcmp(name, "NSD")) return 10; // Name Space declaration xmlns
     if (!strcmp(name, "UW")) return 11; // Unicode whitespace
     if (!strcmp(name, "XSL")) return 12; // Element color for xsl transform elements.
+    if (!strcmp(name, "FG")) return 13; // Foreground color
+    if (!strcmp(name, "BG")) return 14; // Background color
     return -1;
 }
 
@@ -9217,7 +9286,9 @@ const char *default_darkbg_colors[NUM_XMQ_COLOR_NAMES] = {
     "#c061cb", // XMQ_COLOR_CP
     "#2aa1b3", // XMQ_COLOR_NSD
     "#880000_U", // XMQ_COLOR_UW
-    "#c061cb" // XMQ_COLOR_XSL
+    "#c061cb", // XMQ_COLOR_XSL
+    "", // XMQ_COLOR_FG
+    "" // XMQ_COLOR_BG
 };
 
 const char *win_darkbg_ansi[NUM_XMQ_COLOR_NAMES] = {
@@ -9234,6 +9305,8 @@ const char *win_darkbg_ansi[NUM_XMQ_COLOR_NAMES] = {
     "\033[36m\033[24m", // XMQ_COLOR_NSD --- LIGHT BLUE
     "\033[91m\033[4m", // XMQ_COLOR_UW --- RED UNDERLINE
     "\033[95m\033[24m", // XMQ_COLOR_XSL -- MAGENTA
+    "", // XMQ_COLOR_FG
+    "" // XMQ_COLOR_BG
 };
 
 const char *default_lightbg_colors[NUM_XMQ_COLOR_NAMES] = {
@@ -9249,7 +9322,9 @@ const char *default_lightbg_colors[NUM_XMQ_COLOR_NAMES] = {
     "#c061cb", // XMQ_COLOR_CP
     "#1a91a3", // XMQ_COLOR_NSD
     "#880000_U", // XMQ_COLOR_UW
-    "#c061cb" // XMQ_COLOR_XSL
+    "#c061cb", // XMQ_COLOR_XSL
+    "", // XMQ_COLOR_FG
+    "" // XMQ_COLOR_BG
 };
 
 const char *ansiWin(int i)

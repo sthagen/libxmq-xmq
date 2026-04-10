@@ -350,11 +350,62 @@ void setup_html_coloring(XMQOutputSettings *os, XMQTheme *theme, bool dark_mode,
         MemBuffer *style_pre = new_membuffer();
 
         membuffer_append(style_pre,
-
                          "@media screen and (orientation: portrait) { pre { font-size: 2vw; } }"
-                         "@media screen and (orientation: landscape) { pre { max-width: 98%; } }"
-                         "pre.xmq_dark {white-space:pre-wrap;word-break:break-all;border-radius:2px;background-color:#263338;border:solid 1px #555555;display:inline-block;padding:1em;color:white;}\n"
-                         "pre.xmq_light{white-space:pre-wrap;word-break:break-all;border-radius:2px;background-color:#ffffcc;border:solid 1px #888888;display:inline-block;padding:1em;color:black;}\n"
+                         "@media screen and (orientation: landscape) { pre { max-width: 98%; } }");
+
+        // Setup CSS for dark mode
+        membuffer_append(style_pre, "pre.xmq_dark {white-space:pre-wrap;word-break:break-all;border-radius:2px;background-color:#");
+
+        // Lookup the bg color in dark....
+        XMQColorDef *def = &theme->colors_darkbg[XMQ_COLOR_BG_INDEX];
+        if (def->r == -1) membuffer_append(style_pre, "263338"); // No override, use default.
+        else
+        {
+            // BG override in dark mode use it.
+            char buf[7];
+            snprintf(buf, 7, "%02x%02x%02x", def->r, def->g, def->b);
+            membuffer_append(style_pre, buf);
+        }
+        membuffer_append(style_pre,    ";border:solid 1px #555555;display:inline-block;padding:1em;color:#");
+
+        // Lookup the fg color in dark....
+        def = &theme->colors_darkbg[XMQ_COLOR_FG_INDEX];
+        if (def->r == -1) membuffer_append(style_pre, "ffffff");
+        else
+        {
+            char buf[7];
+            snprintf(buf, 7, "%02x%02x%02x", def->r, def->g, def->b);
+            membuffer_append(style_pre, buf);
+        }
+        membuffer_append(style_pre,";}\n");
+
+        // Setup CSS for light mode
+        membuffer_append(style_pre, "pre.xmq_light{white-space:pre-wrap;word-break:break-all;border-radius:2px;background-color:#");
+
+        // Lookup the bg color in light....
+        def = &theme->colors_lightbg[XMQ_COLOR_BG_INDEX];
+        if (def->r == -1) membuffer_append(style_pre, "ffffcc"); // No override, use default.
+        else
+        {
+            // BG override in dark mode use it.
+            char buf[7];
+            snprintf(buf, 7, "%02x%02x%02x", def->r, def->g, def->b);
+            membuffer_append(style_pre, buf);
+        }
+        membuffer_append(style_pre, ";border:solid 1px #888888;display:inline-block;padding:1em;color:#");
+
+        // Lookup the fg color in dark....
+        def = &theme->colors_darkbg[XMQ_COLOR_FG_INDEX];
+        if (def->r == -1) membuffer_append(style_pre, "000000");
+        else
+        {
+            char buf[7];
+            snprintf(buf, 7, "%02x%02x%02x", def->r, def->g, def->b);
+            membuffer_append(style_pre, buf);
+        }
+        membuffer_append(style_pre,";}\n");
+
+        membuffer_append(style_pre,
                          "body.xmq_dark {background-color:black;}\n"
                          "body.xmq_light {}\n");
 

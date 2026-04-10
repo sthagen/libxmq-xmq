@@ -38,6 +38,10 @@ package org.libxmq;
     SYNTAX_CP: Compound Parentheses
     SYNTAX_NDC: Namespace declaration
     SYNTAX_UW: Unicode Whitespace
+    SYNTAX_XSL: The xsl namespace
+    SYNTAX_FG: Foreground text color
+    SYNTAX_BG: Background text color
+
 */
 public enum XMQColorName {
     /** Comment */
@@ -65,5 +69,9 @@ public enum XMQColorName {
     /** Unicode whitespace */
     XMQ_COLOR_UW,
     /** Override XLS element names with this color. */
-    XMQ_COLOR_XLS;
+    XMQ_COLOR_XLS,
+    /** Override FG color of text. */
+    XMQ_COLOR_FG,
+    /** Override BG color for terminal. */
+    XMQ_COLOR_BG;
 }

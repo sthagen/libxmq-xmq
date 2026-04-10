@@ -83,11 +83,16 @@ bool string_to_color_def(const char *s, XMQColorDef *def)
     // #aabbcc_U
     // #aabbcc_B_U
 
+    // "" the empty string translates into def with -1 -1 -1 as rgb values.
+    // used to identify
+
     def->r = -1;
     def->g = -1;
     def->b = -1;
     def->bold = false;
     def->underline = false;
+
+    if (s[0] == 0) return true;
 
     int r, g, b;
     bool bold, underline;
@@ -233,7 +238,7 @@ bool generate_tex_color(char *buf, size_t buf_size, XMQColorDef *def, const char
     return true;
 }
 
-const char *color_names[13] = {
+const char *color_names[15] = {
     "xmqC", // Comment
     "xmqQ", // Quote
     "xmqE", // Entity
@@ -247,6 +252,8 @@ const char *color_names[13] = {
     "xmqNSD", // Name Space declaration xmlns
     "xmqUW", // Unicode whitespace
     "xmqXSL", // Element color for xsl transform elements.
+    "xmqFG", // Foreground color
+    "xmqBG", // Background color
 };
 
 const char* colorName(int i)
@@ -269,6 +276,8 @@ int colorShortNameToIndex(const char *name)
     if (!strcmp(name, "NSD")) return 10; // Name Space declaration xmlns
     if (!strcmp(name, "UW")) return 11; // Unicode whitespace
     if (!strcmp(name, "XSL")) return 12; // Element color for xsl transform elements.
+    if (!strcmp(name, "FG")) return 13; // Foreground color
+    if (!strcmp(name, "BG")) return 14; // Background color
     return -1;
 }
 

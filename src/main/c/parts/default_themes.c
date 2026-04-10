@@ -48,7 +48,9 @@ const char *default_darkbg_colors[NUM_XMQ_COLOR_NAMES] = {
     "#c061cb", // XMQ_COLOR_CP
     "#2aa1b3", // XMQ_COLOR_NSD
     "#880000_U", // XMQ_COLOR_UW
-    "#c061cb" // XMQ_COLOR_XSL
+    "#c061cb", // XMQ_COLOR_XSL
+    "", // XMQ_COLOR_FG
+    "" // XMQ_COLOR_BG
 };
 
 const char *win_darkbg_ansi[NUM_XMQ_COLOR_NAMES] = {
@@ -65,6 +67,8 @@ const char *win_darkbg_ansi[NUM_XMQ_COLOR_NAMES] = {
     "\033[36m\033[24m", // XMQ_COLOR_NSD --- LIGHT BLUE
     "\033[91m\033[4m", // XMQ_COLOR_UW --- RED UNDERLINE
     "\033[95m\033[24m", // XMQ_COLOR_XSL -- MAGENTA
+    "", // XMQ_COLOR_FG
+    "" // XMQ_COLOR_BG
 };
 
 const char *default_lightbg_colors[NUM_XMQ_COLOR_NAMES] = {
@@ -80,7 +84,9 @@ const char *default_lightbg_colors[NUM_XMQ_COLOR_NAMES] = {
     "#c061cb", // XMQ_COLOR_CP
     "#1a91a3", // XMQ_COLOR_NSD
     "#880000_U", // XMQ_COLOR_UW
-    "#c061cb" // XMQ_COLOR_XSL
+    "#c061cb", // XMQ_COLOR_XSL
+    "", // XMQ_COLOR_FG
+    "" // XMQ_COLOR_BG
 };
 
 const char *ansiWin(int i)
