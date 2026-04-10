@@ -250,7 +250,7 @@ You can make override more than one color for both light and dark.
 The default theme is:
 ```
 XMQ_THEME=dark+C=#2aa1b3:Q=#26a269_B:E=#c061cb:NS=#a9a9a9:EN=#ff8c00:EK=#88b4f7:EKV=#26a269_B:AK=#88b4f7:AKV=#6196ec:CP=#c061cb:NSD=#2aa1b3:UW=#880000_U:XSL=#c061cb,light+C=#2aa1b3:Q=#26a269_B:E=#c061cb:NS=#696969:EN=#a86c00:EK=#0060fd:EKV=#26a269_B:AK=#0060fd:AKV=#12488c:CP=#c061cb:NSD=#1a91a3:UW=#880000_U:XSL=#c061cb
-```
+``````
 
 ## Using xmq.h and xmq.c in your program
 
