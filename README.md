@@ -245,7 +245,12 @@ To make the change sensitive to dark/light backgrounds:
 
 You can make override more than one color for both light and dark.
 
-`export XMQ_COLORS=dark+C=#ff0000_B:Q=#00ffff_U:EKV=#112233_U_B,light+C=#880000`
+`export XMQ_THEME=dark+C=#ff0000_B:Q=#00ffff_U:EKV=#112233_U_B,light+C=#880000`
+
+The default theme is:
+```
+XMQ_THEME=dark+C=#2aa1b3:Q=#26a269_B:E=#c061cb:NS=#a9a9a9:EN=#ff8c00:EK=#88b4f7:EKV=#26a269_B:AK=#88b4f7:AKV=#6196ec:CP=#c061cb:NSD=#2aa1b3:UW=#880000_U:XSL=#c061cb,light+C=#2aa1b3:Q=#26a269_B:E=#c061cb:NS=#696969:EN=#a86c00:EK=#0060fd:EKV=#26a269_B:AK=#0060fd:AKV=#12488c:CP=#c061cb:NSD=#1a91a3:UW=#880000_U:XSL=#c061cb
+```
 
 ## Using xmq.h and xmq.c in your program
 
